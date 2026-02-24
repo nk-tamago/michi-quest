@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@theme {
+  --color-earth-100: #fdf6e3;
+  --color-earth-200: #e6e0cc;
+  --color-earth-300: #d6cfb3;
+  --color-earth-800: #556b2f;
+  /* Olive Drab / Khaki base */
+  --color-earth-900: #3b4d20;
+
+  --animate-fade-in: fade-in 0.4s ease-out;
+  --animate-fade-in-up: fade-in-up 0.5s ease-out;
+
+  @keyframes fade-in {
+    0% {
+      opacity: 0;
+    }
+
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fade-in-up {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@layer base {
+  body {
+    background-color: var(--color-earth-100);
+    color: var(--color-earth-900);
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/* Custom Speech Bubble Tails using borders */
+.clip-triangle-left {
+  clip-path: polygon(100% 0, 0 50%, 100% 100%);
+}
+
+.clip-triangle-right {
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+/* Safe Area Insets Support for PWA */
+.pb-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+}
