@@ -64,23 +64,39 @@ export default function App() {
     }
   }, [currentSessionId]); // sessions に依存させると入力のたびに呼ばれてしまうので初期ロード時とID変更時のみ
 
-  // チャットやミッションが更新されたら、現在のセッションに保存する
-  useEffect(() => {
-    if (!currentSessionId) return;
+  // --- State更新時に、現在のセッションへ同期するラッパー関数 ---
+  const handleUpdateChatHistory = (newHistory) => {
+    const historyValue = typeof newHistory === 'function' ? newHistory(chatHistory) : newHistory;
+    setChatHistory(historyValue);
 
-    setSessions(prev => prev.map(s => {
-      if (s.id === currentSessionId) {
-        let title = s.title;
-        // ミッション文が生成されたらタイトルを設定する
-        if (!title && currentMission) {
-          const cleanText = currentMission.replace(/\[Emotion:.*?\]/ig, '').trim();
-          title = cleanText.slice(0, 15) + (cleanText.length > 15 ? '...' : '');
+    if (currentSessionId) {
+      setSessions(prev => prev.map(s => {
+        if (s.id === currentSessionId) {
+          return { ...s, history: historyValue };
         }
-        return { ...s, history: chatHistory, currentMission: currentMission, title: title || '' };
-      }
-      return s;
-    }));
-  }, [chatHistory, currentMission, currentSessionId]);
+        return s;
+      }));
+    }
+  };
+
+  const handleUpdateCurrentMission = (newMission) => {
+    const missionValue = typeof newMission === 'function' ? newMission(currentMission) : newMission;
+    setCurrentMission(missionValue);
+
+    if (currentSessionId) {
+      setSessions(prev => prev.map(s => {
+        if (s.id === currentSessionId) {
+          let title = s.title;
+          if (!title && missionValue) {
+            const cleanText = missionValue.replace(/\[Emotion:.*?\]/ig, '').trim();
+            title = cleanText.slice(0, 15) + (cleanText.length > 15 ? '...' : '');
+          }
+          return { ...s, currentMission: missionValue, title: title || '' };
+        }
+        return s;
+      }));
+    }
+  };
 
   const handleNewSession = () => {
     const newId = Date.now();
@@ -193,9 +209,9 @@ export default function App() {
                 prompt1={prompt1}
                 prompt2={prompt2}
                 chatHistory={chatHistory}
-                setChatHistory={setChatHistory}
+                setChatHistory={handleUpdateChatHistory}
                 currentMission={currentMission}
-                setCurrentMission={setCurrentMission}
+                setCurrentMission={handleUpdateCurrentMission}
               />
             )
           )}
