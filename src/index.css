@@ -57,3 +57,8 @@
 .pb-safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 20px);
 }
+
+/* Chat bubble animation */
+.animate-chat-appear {
+  animation: fade-in-up 0.3s cubic-bezier(0.1, 0.82, 0.25, 1) forwards;
+}

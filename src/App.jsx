@@ -1,25 +1,110 @@
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Settings from './pages/Settings';
-import Mission from './pages/Mission';
-import Report from './pages/Report';
+import ChatThread from './pages/ChatThread';
+import Sidebar from './components/Sidebar';
 import { useLocalStorage } from './utils/useLocalStorage';
-import { Camera } from 'lucide-react';
 import { APP_CONFIG } from './config';
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState('mission');
+  const [currentTab, setCurrentTab] = useState('chat');
 
-  // 永続化ステート
   const [apiKey, setApiKey] = useLocalStorage('geminiApiKey', '');
   const [aiModel, setAiModel] = useLocalStorage('geminiAiModel', 'gemini-2.5-flash');
+
+  // アバター系
   const [avatarData, setAvatarData] = useLocalStorage('aiAvatarData', '');
+  const [avatarAngry, setAvatarAngry] = useLocalStorage('aiAvatarAngry', '');
+  const [avatarJoy, setAvatarJoy] = useLocalStorage('aiAvatarJoy', '');
+  const [avatarDisgust, setAvatarDisgust] = useLocalStorage('aiAvatarDisgust', '');
 
   const [prompt1, setPrompt1] = useLocalStorage('aiPrompt1', APP_CONFIG.defaultPrompt1);
   const [prompt2, setPrompt2] = useLocalStorage('aiPrompt2', APP_CONFIG.defaultPrompt2);
 
-  // アクティブなセッション状態（リロード時にも保持するかどうかは要件次第だが、今回はlocalStorageに入れる）
-  const [currentMission, setCurrentMission] = useLocalStorage('currentMission', '');
+  // セッション管理系
+  const [sessions, setSessions] = useLocalStorage('chatSessions', []); // [{id: number, title: string, history: [], currentMission: string}]
+  const [currentSessionId, setCurrentSessionId] = useLocalStorage('currentSessionId', null);
+
+  // アクティブなセッション状態（現在のチャットスレッド用）
+  const [currentMission, setCurrentMission] = useState('');
+  const [chatHistory, setChatHistory] = useState([]);
+
+  // サイドバーの開閉状態
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // 初回のセッション初期化、または選択されたセッションの読み込み
+  useEffect(() => {
+    if (sessions.length > 0 && currentSessionId) {
+      const activeSession = sessions.find(s => s.id === currentSessionId);
+      if (activeSession) {
+        setChatHistory(activeSession.history || []);
+        setCurrentMission(activeSession.currentMission || '');
+      }
+    } else if (sessions.length === 0) {
+      // 既存の chatHistory があれば移行する(後方互換用)、なければ新規作成しない(New Sessionボタンで作成)
+      const oldHistoryStr = window.localStorage.getItem('chatHistory');
+      if (oldHistoryStr) {
+        try {
+          const oldHistory = JSON.parse(oldHistoryStr);
+          if (oldHistory.length > 0) {
+            const newId = Date.now();
+            const firstMission = oldHistory.find(m => m.role === 'ai')?.text || '過去のミッション';
+            // 冒頭を適当にタイトルにする
+            const newSession = {
+              id: newId,
+              title: firstMission.slice(0, 15) + '...',
+              history: oldHistory,
+              currentMission: ''
+            };
+            setSessions([newSession]);
+            setCurrentSessionId(newId);
+          }
+        } catch (e) { }
+      }
+    }
+  }, [currentSessionId]); // sessions に依存させると入力のたびに呼ばれてしまうので初期ロード時とID変更時のみ
+
+  // チャットやミッションが更新されたら、現在のセッションに保存する
+  useEffect(() => {
+    if (!currentSessionId) return;
+
+    setSessions(prev => prev.map(s => {
+      if (s.id === currentSessionId) {
+        // AIの最初の発言をタイトルにする
+        let title = s.title;
+        if (!title && chatHistory.length > 0) {
+          const firstAi = chatHistory.find(m => m.role === 'ai');
+          if (firstAi) title = firstAi.text.slice(0, 15) + '...';
+        }
+        return { ...s, history: chatHistory, currentMission: currentMission, title: title || '' };
+      }
+      return s;
+    }));
+  }, [chatHistory, currentMission, currentSessionId]);
+
+  const handleNewSession = () => {
+    const newId = Date.now();
+    const newSession = { id: newId, title: '', history: [], currentMission: '' };
+    setSessions([newSession, ...sessions]);
+    setCurrentSessionId(newId);
+    setChatHistory([]);
+    setCurrentMission('');
+    setCurrentTab('chat');
+  };
+
+  const handleDeleteSession = (id) => {
+    const newSessions = sessions.filter(s => s.id !== id);
+    setSessions(newSessions);
+    if (currentSessionId === id) {
+      if (newSessions.length > 0) {
+        setCurrentSessionId(newSessions[0].id);
+      } else {
+        setCurrentSessionId(null);
+        setChatHistory([]);
+        setCurrentMission('');
+      }
+    }
+  };
 
   // 初回起動時、APIキーがなければ強制的に設定タブへ
   useEffect(() => {
@@ -43,56 +128,71 @@ export default function App() {
       return;
     }
     alert("設定を保存しました。");
-    setCurrentTab('mission');
+    setCurrentTab('chat');
   };
 
   return (
-    <div className="min-h-screen flex flex-col pb-safe-bottom relative">
-      <Header currentTab={currentTab} onChangeTab={handleTabChange} />
+    <div className="min-h-screen flex flex-col pb-safe-bottom relative overflow-hidden bg-earth-100">
+      <Header
+        currentTab={currentTab}
+        onChangeTab={handleTabChange}
+        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+      />
 
-      <main className="flex-1 w-full bg-earth-100 overflow-y-auto">
-        {currentTab === 'settings' && (
-          <Settings
-            apiKey={apiKey} setApiKey={setApiKey}
-            aiModel={aiModel} setAiModel={setAiModel}
-            avatarData={avatarData} setAvatarData={setAvatarData}
-            prompt1={prompt1} setPrompt1={setPrompt1}
-            prompt2={prompt2} setPrompt2={setPrompt2}
-            onSave={handleSettingsSave}
-          />
-        )}
+      <div className="flex-1 flex overflow-hidden">
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          sessions={sessions}
+          currentSessionId={currentSessionId}
+          onSelectSession={(id) => setCurrentSessionId(id)}
+          onNewSession={handleNewSession}
+          onDeleteSession={handleDeleteSession}
+        />
 
-        {currentTab === 'mission' && (
-          <Mission
-            apiKey={apiKey}
-            aiModel={aiModel}
-            avatarData={avatarData}
-            prompt1={prompt1}
-            currentMission={currentMission}
-            setCurrentMission={setCurrentMission}
-          />
-        )}
+        <main className="flex-1 w-full bg-earth-100 overflow-y-auto relative">
+          {currentTab === 'settings' && (
+            <Settings
+              apiKey={apiKey} setApiKey={setApiKey}
+              aiModel={aiModel} setAiModel={setAiModel}
+              avatarData={avatarData} setAvatarData={setAvatarData}
+              avatarAngry={avatarAngry} setAvatarAngry={setAvatarAngry}
+              avatarJoy={avatarJoy} setAvatarJoy={setAvatarJoy}
+              avatarDisgust={avatarDisgust} setAvatarDisgust={setAvatarDisgust}
+              prompt1={prompt1} setPrompt1={setPrompt1}
+              prompt2={prompt2} setPrompt2={setPrompt2}
+              onSave={handleSettingsSave}
+            />
+          )}
 
-        {currentTab === 'report' && (
-          <Report
-            apiKey={apiKey}
-            aiModel={aiModel}
-            avatarData={avatarData}
-            prompt2={prompt2}
-            currentMission={currentMission}
-          />
-        )}
-      </main>
-
-      {/* フローティングアクションボタン (スマホ向け補助UI) */}
-      {currentTab === 'mission' && currentMission && (
-        <button
-          onClick={() => setCurrentTab('report')}
-          className="fixed bottom-6 right-6 md:hidden bg-earth-800 text-white p-4 rounded-full shadow-lg z-50 hover:bg-earth-900 transition-transform active:scale-95 flex items-center gap-2"
-        >
-          <Camera size={24} /> 報告へ
-        </button>
-      )}
+          {currentTab === 'chat' && (
+            // currentSessionIdがない場合は空画面に近いものを出すか、強制Start
+            !currentSessionId ? (
+              <div className="flex flex-col items-center justify-center h-full text-earth-800 p-4">
+                <p className="mb-4">新しいツーリング履歴を作成してください</p>
+                <button onClick={handleNewSession} className="px-6 py-3 bg-earth-800 text-white rounded-xl shadow-md font-bold hover:bg-earth-900 transition-colors">
+                  新しいツーリングをはじめる
+                </button>
+              </div>
+            ) : (
+              <ChatThread
+                apiKey={apiKey}
+                aiModel={aiModel}
+                avatarData={avatarData}
+                avatarAngry={avatarAngry}
+                avatarJoy={avatarJoy}
+                avatarDisgust={avatarDisgust}
+                prompt1={prompt1}
+                prompt2={prompt2}
+                chatHistory={chatHistory}
+                setChatHistory={setChatHistory}
+                currentMission={currentMission}
+                setCurrentMission={setCurrentMission}
+              />
+            )
+          )}
+        </main>
+      </div>
     </div>
   );
 }

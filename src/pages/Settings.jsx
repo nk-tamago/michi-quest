@@ -7,19 +7,25 @@ export default function SettingsPath({
     apiKey, setApiKey,
     aiModel, setAiModel,
     avatarData, setAvatarData,
+    avatarAngry, setAvatarAngry,
+    avatarJoy, setAvatarJoy,
+    avatarDisgust, setAvatarDisgust,
     prompt1, setPrompt1,
     prompt2, setPrompt2,
     onSave
 }) {
-    const fileInputRef = useRef(null);
+    const defaultInputRef = useRef(null);
+    const angryInputRef = useRef(null);
+    const joyInputRef = useRef(null);
+    const disgustInputRef = useRef(null);
 
-    const handleImageUpload = (e) => {
+    const handleImageUpload = (e, setter) => {
         const file = e.target.files[0];
         if (!file) return;
 
         const reader = new FileReader();
         reader.onload = (event) => {
-            setAvatarData(event.target.result);
+            setter(event.target.result);
         };
         reader.readAsDataURL(file);
     };
@@ -68,32 +74,58 @@ export default function SettingsPath({
                         </select>
                     </div>
 
-                    {/* Avatar Image */}
-                    <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-earth-800">AI キャラクター立ち絵</label>
-                        <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 rounded-full bg-earth-200 border-2 border-dashed border-earth-300 flex items-center justify-center overflow-hidden flex-shrink-0">
-                                {avatarData ? (
-                                    <img src={avatarData} alt="Avatar" className="w-full h-full object-cover" />
-                                ) : (
-                                    <ImagePlus className="text-earth-300" />
-                                )}
+                    {/* Avatar Images section */}
+                    <div className="space-y-4">
+                        <label className="block text-sm font-semibold text-earth-800 border-b border-earth-300 pb-1">AI キャラクター立ち絵 (感情別)</label>
+                        <p className="text-xs text-earth-900/60 mb-2">※未設定の感情は「通常」の画像が使われます</p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* 通常 */}
+                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200">
+                                <div className="w-12 h-12 rounded-full bg-earth-200 border-2 border-dashed border-earth-300 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                    {avatarData ? <img src={avatarData} alt="Normal" className="w-full h-full object-cover" /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
+                                </div>
+                                <div className="flex-1">
+                                    <div className="text-xs font-bold text-earth-800 mb-1">通常 (デフォルト)</div>
+                                    <input type="file" accept="image/*" ref={defaultInputRef} onChange={(e) => handleImageUpload(e, setAvatarData)} className="hidden" />
+                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); defaultInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">選択</Button>
+                                </div>
                             </div>
-                            <div className="flex-1">
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    ref={fileInputRef}
-                                    onChange={handleImageUpload}
-                                    className="hidden"
-                                />
-                                <Button
-                                    variant="secondary"
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="w-full sm:w-auto text-sm py-2"
-                                >
-                                    <ImagePlus size={16} /> 画像を選択
-                                </Button>
+
+                            {/* 怒り */}
+                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200">
+                                <div className="w-12 h-12 rounded-full bg-earth-200 border-2 border-dashed border-earth-300 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                    {avatarAngry ? <img src={avatarAngry} alt="Angry" className="w-full h-full object-cover" /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
+                                </div>
+                                <div className="flex-1">
+                                    <div className="text-xs font-bold text-earth-800 mb-1">怒り / 罵倒</div>
+                                    <input type="file" accept="image/*" ref={angryInputRef} onChange={(e) => handleImageUpload(e, setAvatarAngry)} className="hidden" />
+                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); angryInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">選択</Button>
+                                </div>
+                            </div>
+
+                            {/* 喜び */}
+                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200">
+                                <div className="w-12 h-12 rounded-full bg-earth-200 border-2 border-dashed border-earth-300 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                    {avatarJoy ? <img src={avatarJoy} alt="Joy" className="w-full h-full object-cover" /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
+                                </div>
+                                <div className="flex-1">
+                                    <div className="text-xs font-bold text-earth-800 mb-1">喜び / 褒める</div>
+                                    <input type="file" accept="image/*" ref={joyInputRef} onChange={(e) => handleImageUpload(e, setAvatarJoy)} className="hidden" />
+                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); joyInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">選択</Button>
+                                </div>
+                            </div>
+
+                            {/* 呆れ */}
+                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200">
+                                <div className="w-12 h-12 rounded-full bg-earth-200 border-2 border-dashed border-earth-300 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                    {avatarDisgust ? <img src={avatarDisgust} alt="Disgust" className="w-full h-full object-cover" /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
+                                </div>
+                                <div className="flex-1">
+                                    <div className="text-xs font-bold text-earth-800 mb-1">呆れ / ツッコミ</div>
+                                    <input type="file" accept="image/*" ref={disgustInputRef} onChange={(e) => handleImageUpload(e, setAvatarDisgust)} className="hidden" />
+                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); disgustInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">選択</Button>
+                                </div>
                             </div>
                         </div>
                     </div>
