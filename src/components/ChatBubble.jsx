@@ -42,13 +42,17 @@ export default function ChatBubble({
                     ? 'bg-earth-800 text-earth-100 rounded-2xl rounded-tr-none'
                     : 'bg-white text-earth-900 rounded-2xl rounded-tl-none border border-earth-200'
                 }`}>
-                {/* Simple triangle tail for the speech bubble */}
-                <div className={`absolute top-0 w-3 h-3 
-          ${isUser
-                        ? '-right-1.5 bg-earth-800 clip-triangle-right'
-                        : '-left-1.5 bg-white border-l border-t border-earth-200 clip-triangle-left'
-                    }`}>
-                </div>
+                {/* 吹き出しのしっぽ */}
+                {isUser ? (
+                    <svg className="absolute top-0 -right-[7px] w-[8px] h-[12px]" viewBox="0 0 8 12" fill="none">
+                        <path d="M0 0 L8 0 L0 12 Z" fill="currentColor" className="text-earth-800" />
+                    </svg>
+                ) : (
+                    <svg className="absolute top-[-1px] -left-[8px] w-[8px] h-[13px]" viewBox="0 0 8 13" fill="none">
+                        <path d="M8 1 L0 1 L8 13 Z" fill="white" />
+                        <path d="M8 1 L0 1 L8 13" stroke="currentColor" strokeWidth="1" className="text-earth-200" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                )}
                 <p className="whitespace-pre-wrap leading-relaxed">{displayMessage}</p>
             </div>
         </div>

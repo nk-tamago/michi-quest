@@ -3,6 +3,7 @@ import ChatBubble from '../components/ChatBubble';
 import Button from '../components/Button';
 import { Camera, Send, Loader2, Map as MapIcon, RefreshCcw } from 'lucide-react';
 import { generateMission, evaluateReport } from '../utils/api';
+import { resizeImage } from '../utils/imageUtils';
 import { APP_CONFIG } from '../config';
 
 export default function ChatThread({
@@ -66,16 +67,22 @@ export default function ChatThread({
         }
     };
 
-    const handleImageUpload = (e) => {
+    const handleImageUpload = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setImagePreview(reader.result);
-            setImageBase64(reader.result);
-        };
-        reader.readAsDataURL(file);
+        try {
+            setLoading(true);
+            // 画像を送信・解析可能なサイズ(長辺最大1024px)にリサイズして圧縮
+            const resizedBase64 = await resizeImage(file, 1024);
+            setImagePreview(resizedBase64);
+            setImageBase64(resizedBase64);
+        } catch (err) {
+            setError("画像の処理に失敗しました");
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleClearImage = () => {

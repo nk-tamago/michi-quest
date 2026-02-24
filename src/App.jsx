@@ -70,11 +70,11 @@ export default function App() {
 
     setSessions(prev => prev.map(s => {
       if (s.id === currentSessionId) {
-        // AIの最初の発言をタイトルにする
         let title = s.title;
-        if (!title && chatHistory.length > 0) {
-          const firstAi = chatHistory.find(m => m.role === 'ai');
-          if (firstAi) title = firstAi.text.slice(0, 15) + '...';
+        // ミッション文が生成されたらタイトルを設定する
+        if (!title && currentMission) {
+          const cleanText = currentMission.replace(/\[Emotion:.*?\]/ig, '').trim();
+          title = cleanText.slice(0, 15) + (cleanText.length > 15 ? '...' : '');
         }
         return { ...s, history: chatHistory, currentMission: currentMission, title: title || '' };
       }
@@ -131,15 +131,21 @@ export default function App() {
     setCurrentTab('chat');
   };
 
+  const activeSession = sessions.find(s => s.id === currentSessionId);
+  const headerTitle = currentTab === 'chat'
+    ? (activeSession?.title || 'MichiQuest')
+    : '設定';
+
   return (
-    <div className="min-h-screen flex flex-col pb-safe-bottom relative overflow-hidden bg-earth-100">
+    <div className="h-[100dvh] flex flex-col pb-safe-bottom relative overflow-hidden bg-earth-100">
       <Header
         currentTab={currentTab}
         onChangeTab={handleTabChange}
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+        title={headerTitle}
       />
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden w-full relative">
         <Sidebar
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
@@ -150,25 +156,27 @@ export default function App() {
           onDeleteSession={handleDeleteSession}
         />
 
-        <main className="flex-1 w-full bg-earth-100 overflow-y-auto relative">
+        <main className="flex-1 w-full bg-earth-100 h-full overflow-hidden flex flex-col relative">
           {currentTab === 'settings' && (
-            <Settings
-              apiKey={apiKey} setApiKey={setApiKey}
-              aiModel={aiModel} setAiModel={setAiModel}
-              avatarData={avatarData} setAvatarData={setAvatarData}
-              avatarAngry={avatarAngry} setAvatarAngry={setAvatarAngry}
-              avatarJoy={avatarJoy} setAvatarJoy={setAvatarJoy}
-              avatarDisgust={avatarDisgust} setAvatarDisgust={setAvatarDisgust}
-              prompt1={prompt1} setPrompt1={setPrompt1}
-              prompt2={prompt2} setPrompt2={setPrompt2}
-              onSave={handleSettingsSave}
-            />
+            <div className="flex-1 overflow-y-auto w-full">
+              <Settings
+                apiKey={apiKey} setApiKey={setApiKey}
+                aiModel={aiModel} setAiModel={setAiModel}
+                avatarData={avatarData} setAvatarData={setAvatarData}
+                avatarAngry={avatarAngry} setAvatarAngry={setAvatarAngry}
+                avatarJoy={avatarJoy} setAvatarJoy={setAvatarJoy}
+                avatarDisgust={avatarDisgust} setAvatarDisgust={setAvatarDisgust}
+                prompt1={prompt1} setPrompt1={setPrompt1}
+                prompt2={prompt2} setPrompt2={setPrompt2}
+                onSave={handleSettingsSave}
+              />
+            </div>
           )}
 
           {currentTab === 'chat' && (
             // currentSessionIdがない場合は空画面に近いものを出すか、強制Start
             !currentSessionId ? (
-              <div className="flex flex-col items-center justify-center h-full text-earth-800 p-4">
+              <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center p-4 text-earth-800">
                 <p className="mb-4">新しいツーリング履歴を作成してください</p>
                 <button onClick={handleNewSession} className="px-6 py-3 bg-earth-800 text-white rounded-xl shadow-md font-bold hover:bg-earth-900 transition-colors">
                   新しいツーリングをはじめる

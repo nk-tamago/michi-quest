@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import Button from '../components/Button';
 import { Settings as SettingsIcon, ImagePlus, Save } from 'lucide-react';
+import { resizeImage } from '../utils/imageUtils';
 import { APP_CONFIG } from '../config';
 
 export default function SettingsPath({
@@ -19,15 +20,18 @@ export default function SettingsPath({
     const joyInputRef = useRef(null);
     const disgustInputRef = useRef(null);
 
-    const handleImageUpload = (e, setter) => {
+    const handleImageUpload = async (e, setter) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            setter(event.target.result);
-        };
-        reader.readAsDataURL(file);
+        try {
+            // アバター画像なので小さめ(256px)にリサイズして保存容量を節約
+            const resizedBase64 = await resizeImage(file, 256);
+            setter(resizedBase64);
+        } catch (err) {
+            console.error("画像リサイズエラー:", err);
+            alert("画像の処理に失敗しました。");
+        }
     };
 
     const handleSave = (e) => {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Settings, Map, Menu } from 'lucide-react';
 
-export default function Header({ currentTab, onChangeTab, onToggleSidebar }) {
+export default function Header({ currentTab, onChangeTab, onToggleSidebar, title }) {
     const tabs = [
         { id: 'chat', label: 'チャット', icon: <Map size={20} /> },
         { id: 'settings', label: '設定', icon: <Settings size={20} /> }
@@ -14,11 +14,11 @@ export default function Header({ currentTab, onChangeTab, onToggleSidebar }) {
                     <div className="flex items-center gap-2">
                         <button
                             onClick={onToggleSidebar}
-                            className="p-1 rounded-md hover:bg-earth-900/50 transition-colors md:hidden"
+                            className="p-1 rounded-md hover:bg-earth-900/50 transition-colors md:hidden flex-shrink-0"
                         >
                             <Menu size={24} />
                         </button>
-                        <h1 className="text-xl font-bold tracking-widest hidden sm:block">MichiQuest</h1>
+                        <h1 className="text-lg font-bold tracking-wide truncate max-w-[140px] sm:max-w-[200px] md:max-w-xs">{title || 'MichiQuest'}</h1>
                     </div>
                     <nav className="flex space-x-1 md:space-x-4">
                         {tabs.map(tab => (
