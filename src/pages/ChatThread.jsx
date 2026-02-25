@@ -68,12 +68,13 @@ export default function ChatThread({
 
         try {
             setIsProcessingImage(true);
+            // Exif情報をリサイズ前のオリジナルファイルから取得する
+            const location = await getGPSFromImage(file);
+            console.log("Extracted Location from original image:", location);
+            setImageLocation(location);
+
             // 画像を送信・解析可能なサイズ(長辺最大1024px)にリサイズして圧縮
             const resizedBase64 = await resizeImage(file, 1024);
-
-            // Exifから位置情報を取得
-            const location = await getGPSFromImage(file);
-            setImageLocation(location);
 
             setImagePreview(resizedBase64);
             setImageBase64(resizedBase64);

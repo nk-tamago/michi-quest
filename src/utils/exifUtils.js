@@ -1,54 +1,34 @@
-import EXIF from 'exif-js';
+import exifr from 'exifr';
 
-export const getGPSFromImage = (file) => {
-    return new Promise((resolve) => {
-        let isResolved = false;
+/**
+ * 渡された画像ファイルからExifのGPS情報（緯度経度）を抽出する
+ * よりモダンで確実な `exifr` ライブラリを使用
+ * @param {File} file - 画像ファイル
+ * @returns {Promise<{lat: number, lng: number} | null>}
+ */
+export const getGPSFromImage = async (file) => {
+    try {
+        console.log("Analyzing image with exifr...");
+        // タイムアウトを設定して、無限に待たないようにする
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('exifr parser timeout')), 3000)
+        );
+        
+        // exifr.gps() returns {latitude: 35.xxx, longitude: 139.xxx} directly
+        const gps = await Promise.race([
+            exifr.gps(file),
+            timeoutPromise
+        ]);
 
-        // 2秒経っても完了しない場合はタイムアウトとして処理を継続させる
-        const timeoutId = setTimeout(() => {
-            if (!isResolved) {
-                isResolved = true;
-                resolve(null);
-            }
-        }, 2000);
-
-        try {
-            EXIF.getData(file, function() {
-                if (isResolved) return;
-                isResolved = true;
-                clearTimeout(timeoutId);
-
-                const lat = EXIF.getTag(this, "GPSLatitude");
-                const latRef = EXIF.getTag(this, "GPSLatitudeRef");
-                const lng = EXIF.getTag(this, "GPSLongitude");
-                const lngRef = EXIF.getTag(this, "GPSLongitudeRef");
-                
-                if (lat && latRef && lng && lngRef) {
-                    try {
-                        const latitude = convertDMSToDD(lat, latRef);
-                        const longitude = convertDMSToDD(lng, lngRef);
-                        resolve({ lat: latitude, lng: longitude });
-                    } catch (e) {
-                        resolve(null);
-                    }
-                } else {
-                    resolve(null); // GPS info not found
-                }
-            });
-        } catch (e) {
-            if (!isResolved) {
-                isResolved = true;
-                clearTimeout(timeoutId);
-                resolve(null);
-            }
+        console.log("exifr GPS result:", gps);
+        
+        if (gps && gps.latitude != null && gps.longitude != null) {
+            return { lat: gps.latitude, lng: gps.longitude };
         }
-    });
-};
-
-const convertDMSToDD = (dms, ref) => {
-    let dd = dms[0] + dms[1] / 60 + dms[2] / 3600;
-    if (ref === "S" || ref === "W") {
-        dd = dd * -1;
+        
+        return null;
+    } catch (e) {
+        console.error("EXIF parsing error with exifr:", e);
+        return null;
     }
-    return dd;
 };
