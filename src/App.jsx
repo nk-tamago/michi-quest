@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Settings from './pages/Settings';
 import ChatThread from './pages/ChatThread';
+import MapInteractive from './components/MapInteractive';
 import Sidebar from './components/Sidebar';
 import { useLocalStorage } from './utils/useLocalStorage';
 import { APP_CONFIG } from './config';
@@ -52,9 +53,49 @@ export default function App() {
   const activeSession = sessions.find(s => s.id === currentSessionId);
   const chatHistory = activeSession?.history || [];
   const currentMission = activeSession?.currentMission || '';
+  const currentMissionArea = activeSession?.currentMissionArea || null;
 
   // サイドバーの開閉状態
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+
+
+  // 地図用の状態
+  const [userLocation, setUserLocation] = useState(null); // [lat, lng]
+  const [mapCenter, setMapCenter] = useState([35.681236, 139.767125]); // default: Tokyo Station
+
+  // 現在位置の監視開始
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+
+    const id = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setUserLocation([latitude, longitude]);
+        // 初回のみ、またはまだ追従モードなら中心を移動させるなどのロジックも可
+        // 今回は「現在地が取れたらとりあえず中心もそこにする（初回ロード時）」などの簡易実装にするか、
+        // ユーザーが動かしたかを判定する必要があるが、シンプルに「現在地があればそこに」する
+        // ただし、毎回動くとウザいので、初回取得時だけセットする、あるいはボタンで移動するなど
+      },
+      (err) => console.error(err),
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+    );
+    return () => navigator.geolocation.clearWatch(id);
+  }, []);
+
+  // ユーザー位置が取れたら、初回だけマップ中心をそこに合わせる（簡易的）
+  useEffect(() => {
+    if (userLocation) {
+      // すでに中心がユーザー位置付近なら更新しない、などの制御も本来は必要だが
+      // ここでは「現在地取得成功時に一度だけ」のようなフラグ管理が面倒なので
+      // シンプルに「ユーザー位置が更新されたらマップ中心を追従」させない（手動移動を阻害するため）
+      // そのため、ここはコメントアウトして、MapInteractiveに「ユーザー位置」だけ渡す
+      // MapInteractive側で「現在地へ移動」ボタンを作るのがベストだが、
+      // 今回はシンプルに「初期位置もユーザー位置」にしたい場合、
+      // state初期値を工夫するか、別途ボタンを用意する。
+      // いったん、userLocationをMapInteractiveに渡すだけにする。
+    }
+  }, [userLocation]);
 
   // --- State更新時に、現在のセッションへ同期するラッパー関数 ---
   const handleUpdateChatHistory = (newHistory) => {
@@ -76,12 +117,37 @@ export default function App() {
       if (s.id === currentSessionId) {
         const missionValue = typeof newMission === 'function' ? newMission(s.currentMission) : newMission;
 
+        // Parse AREA tag from AI response
+        let areaData = null;
+        const areaMatch = missionValue.match(/\[AREA:\s*({[\s\S]*?})\]/);
+        if (areaMatch) {
+          try {
+            areaData = JSON.parse(areaMatch[1]);
+          } catch (e) {
+            console.error("Failed to parse AREA tag", e);
+          }
+        }
+
         let title = s.title;
         if (!title && missionValue) {
-          const cleanText = missionValue.replace(/\[Emotion:.*?\]/ig, '').trim();
+          const cleanText = missionValue
+            .replace(/\[Emotion:[\s\S]*?\]/ig, '')
+            .replace(/\[AREA:[\s\S]*?\]/ig, '')
+            .trim();
           title = cleanText.slice(0, 15) + (cleanText.length > 15 ? '...' : '');
         }
-        return { ...s, currentMission: missionValue, title: title || '' };
+
+        // AREAタグが見つかった場合のみ更新（ストリーミング中の点滅防止のため、基本は維持or上書き）
+        // ただし新しいミッション（title未定時など）の場合はクリアしたいが、
+        // 既存の仕組みだと判別しづらいので、tagがあれば更新、なければ維持とする
+        const nextArea = areaData || s.currentMissionArea;
+
+        return {
+          ...s,
+          currentMission: missionValue,
+          currentMissionArea: nextArea,
+          title: title || ''
+        };
       }
       return s;
     }));
@@ -139,7 +205,15 @@ export default function App() {
 
   const headerTitle = currentTab === 'chat'
     ? (activeSession?.title || 'MichiQuest')
-    : '設定';
+    : currentTab === 'map' ? '地図' : '設定';
+
+  // Extract photo locations from chat history for markers
+  const photoMarkers = (activeSession?.history || [])
+    .filter(msg => msg.role === 'user' && msg.type === 'image' && msg.location)
+    .map(msg => ({
+      position: [msg.location.lat, msg.location.lng],
+      popupText: `撮影地点: ${msg.text.slice(0, 20)}...`
+    }));
 
   return (
     <div className="h-[100dvh] flex flex-col pb-safe-bottom relative overflow-hidden bg-earth-100">
@@ -162,7 +236,7 @@ export default function App() {
         />
 
         <main className="flex-1 w-full bg-earth-100 h-full overflow-hidden flex flex-col relative">
-          {currentTab === 'settings' ? (
+          {currentTab === 'settings' && (
             <div className="flex-1 overflow-y-auto w-full">
               <Settings
                 apiKey={apiKey} setApiKey={setApiKey}
@@ -176,9 +250,9 @@ export default function App() {
                 onSave={handleSettingsSave}
               />
             </div>
-          ) : null}
+          )}
 
-          {currentTab === 'chat' ? (
+          {currentTab === 'chat' && (
             // currentSessionIdがない場合は空画面に近いものを出すか、強制Start
             !currentSessionId ? (
               <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center p-4 text-earth-800">
@@ -203,7 +277,19 @@ export default function App() {
                 setCurrentMission={handleUpdateCurrentMission}
               />
             )
-          ) : null}
+          )}
+
+          {currentTab === 'map' && (
+            <div className="flex-1 h-full w-full">
+              <MapInteractive
+                center={userLocation || mapCenter}
+                zoom={15}
+                userLocation={userLocation}
+                missionArea={currentMissionArea}
+                markers={photoMarkers}
+              />
+            </div>
+          )}
         </main>
       </div>
     </div>

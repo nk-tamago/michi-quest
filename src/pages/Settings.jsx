@@ -141,7 +141,10 @@ export default function SettingsPath({
 
                     {/* Prompt 1 */}
                     <div className="space-y-1">
-                        <label htmlFor="prompt1" className="block text-sm font-semibold text-earth-800">ミッション生成キャラクター設定</label>
+                        <div className="flex justify-between items-end">
+                            <label htmlFor="prompt1" className="block text-sm font-semibold text-earth-800">ミッション生成キャラクター設定</label>
+                            <button type="button" onClick={() => setPrompt1(APP_CONFIG.defaultPrompt1)} className="text-xs text-blue-600 underline">デフォルトに戻す</button>
+                        </div>
                         <textarea
                             id="prompt1"
                             name="prompt1"
@@ -155,7 +158,10 @@ export default function SettingsPath({
 
                     {/* Prompt 2 */}
                     <div className="space-y-1">
-                        <label htmlFor="prompt2" className="block text-sm font-semibold text-earth-800">写真判定キャラクター設定</label>
+                        <div className="flex justify-between items-end">
+                            <label htmlFor="prompt2" className="block text-sm font-semibold text-earth-800">写真判定キャラクター設定</label>
+                            <button type="button" onClick={() => setPrompt2(APP_CONFIG.defaultPrompt2)} className="text-xs text-blue-600 underline">デフォルトに戻す</button>
+                        </div>
                         <textarea
                             id="prompt2"
                             name="prompt2"

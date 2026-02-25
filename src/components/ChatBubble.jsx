@@ -21,8 +21,11 @@ export default function ChatBubble({
             else if (emotion === 'disgust' && avatarDisgust) displayAvatar = avatarDisgust;
 
             // メッセージ本文から感情タグを取り除く
-            displayMessage = message.replace(/\[Emotion:\s*(angry|joy|disgust|normal)\]/i, '').trim();
+            displayMessage = message.replace(/\[Emotion:\s*(angry|joy|disgust|normal)\]/i, '');
         }
+
+        // メッセージ本文からAREAタグを取り除く
+        displayMessage = displayMessage.replace(/\[AREA:[\s\S]*?\]/ig, '').trim();
     }
 
     return (

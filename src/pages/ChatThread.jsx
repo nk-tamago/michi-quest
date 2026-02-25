@@ -4,6 +4,7 @@ import Button from '../components/Button';
 import { Camera, Send, Loader2, Map as MapIcon, RefreshCcw } from 'lucide-react';
 import { generateMission, evaluateReport } from '../utils/api';
 import { resizeImage } from '../utils/imageUtils';
+import { getGPSFromImage } from '../utils/exifUtils';
 import { APP_CONFIG } from '../config';
 
 export default function ChatThread({
@@ -25,6 +26,8 @@ export default function ChatThread({
     const [inputText, setInputText] = useState('');
     const [imagePreview, setImagePreview] = useState(null);
     const [imageBase64, setImageBase64] = useState(null);
+    const [imageLocation, setImageLocation] = useState(null);
+    const [isProcessingImage, setIsProcessingImage] = useState(false);
     const fileInputRef = useRef(null);
     const chatEndRef = useRef(null);
 
@@ -64,22 +67,28 @@ export default function ChatThread({
         if (!file) return;
 
         try {
-            setLoading(true);
+            setIsProcessingImage(true);
             // 画像を送信・解析可能なサイズ(長辺最大1024px)にリサイズして圧縮
             const resizedBase64 = await resizeImage(file, 1024);
+
+            // Exifから位置情報を取得
+            const location = await getGPSFromImage(file);
+            setImageLocation(location);
+
             setImagePreview(resizedBase64);
             setImageBase64(resizedBase64);
         } catch (err) {
             setError("画像の処理に失敗しました");
             console.error(err);
         } finally {
-            setLoading(false);
+            setIsProcessingImage(false);
         }
     };
 
     const handleClearImage = () => {
         setImagePreview(null);
         setImageBase64(null);
+        setImageLocation(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
@@ -94,7 +103,8 @@ export default function ChatThread({
             role: 'user',
             type: 'image',
             text: currentInput,
-            image: imageBase64
+            image: imageBase64,
+            location: imageLocation
         };
         setChatHistory(prev => [...prev, userMsg]);
 
@@ -118,7 +128,7 @@ export default function ChatThread({
     };
 
     const handleSend = () => {
-        if (loading) return;
+        if (loading || isProcessingImage) return;
         if (imageBase64) {
             handleReportMission();
         } else if (inputText.trim()) {
@@ -215,12 +225,12 @@ export default function ChatThread({
                         {/* Upload Button */}
                         <button
                             onClick={() => fileInputRef.current?.click()}
-                            disabled={loading}
+                            disabled={loading || isProcessingImage}
                             className="p-3 md:p-4 bg-earth-200 text-earth-700 rounded-xl border-2 border-earth-300 hover:bg-earth-300 transition-colors disabled:opacity-50"
                             title="写真を添付"
                             aria-label="写真を添付"
                         >
-                            <Camera size={24} />
+                            {isProcessingImage ? <Loader2 className="animate-spin" size={24} /> : <Camera size={24} />}
                         </button>
 
                         {/* Text Input */}
@@ -228,7 +238,7 @@ export default function ChatThread({
                             value={inputText}
                             onChange={(e) => setInputText(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            disabled={loading}
+                            disabled={loading || isProcessingImage}
                             placeholder={!currentMission ? "ミッションを要求する..." : "何かメッセージを送る (Ctrl+Enterで送信)"}
                             className="flex-1 px-4 py-3 bg-white border border-earth-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-earth-800 resize-none overflow-hidden min-h-[50px] max-h-[120px]"
                             rows="1"
@@ -237,7 +247,7 @@ export default function ChatThread({
                         {/* Send Button */}
                         <button
                             onClick={handleSend}
-                            disabled={loading || (!inputText.trim() && !imageBase64 && currentMission)}
+                            disabled={loading || isProcessingImage || (!inputText.trim() && !imageBase64 && currentMission)}
                             className="p-3 md:p-4 bg-earth-800 text-earth-100 rounded-xl hover:bg-earth-900 transition-colors disabled:opacity-50 flex items-center justify-center shrink-0"
                             aria-label="送信"
                         >

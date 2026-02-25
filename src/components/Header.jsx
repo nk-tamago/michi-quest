@@ -1,9 +1,10 @@
 import React from 'react';
-import { Settings, Map, Menu } from 'lucide-react';
+import { Settings, Map, Menu, MessageSquare } from 'lucide-react';
 
 export default function Header({ currentTab, onChangeTab, onToggleSidebar, title }) {
     const tabs = [
-        { id: 'chat', label: 'チャット', icon: <Map size={20} /> },
+        { id: 'chat', label: 'チャット', icon: <MessageSquare size={20} /> },
+        { id: 'map', label: '地図', icon: <Map size={20} /> },
         { id: 'settings', label: '設定', icon: <Settings size={20} /> }
     ];
 
