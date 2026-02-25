@@ -27,7 +27,7 @@ export default function ChatBubble({
 
     return (
         <div className={`flex w-full mt-4 space-x-3 max-w-xl mx-auto p-2 animate-chat-appear ${isUser ? 'justify-end' : 'justify-start'}`}>
-            {!isUser && (
+            {!isUser ? (
                 <div className="flex-shrink-0">
                     <img
                         className="h-12 w-12 rounded-full border-2 border-earth-300 object-cover bg-earth-200"
@@ -37,7 +37,7 @@ export default function ChatBubble({
                         height={48}
                     />
                 </div>
-            )}
+            ) : null}
 
             <div className={`relative px-5 py-4 text-base md:text-lg shadow-sm
         ${isUser

@@ -33,35 +33,27 @@ export default function ChatThread({
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [chatHistory, loading]);
 
-    // Format chat history for Gemini API context
-    const getGeminiContext = () => {
-        return chatHistory.map(msg => ({
-            role: msg.role === 'ai' ? 'model' : 'user',
-            parts: [{ text: msg.text }]
-        }));
-    };
-
     const handleRequestMission = async () => {
         if (!apiKey) return;
         setLoading(true);
         setError('');
 
-        const userMsg = { id: Date.now(), role: 'user', type: 'text', text: inputText || '今日のミッションちょうだい！' };
-        const newHistory = [...chatHistory, userMsg];
-        setChatHistory(newHistory);
+        const currentInput = inputText || '今日のミッションちょうだい！';
+        const userMsg = { id: Date.now(), role: 'user', type: 'text', text: currentInput };
+        setChatHistory(prev => [...prev, userMsg]);
         setInputText('');
 
         try {
             // パラメータ: apiKey, aiModel, systemInstruction, chatHistory, newText
-            const missionText = await generateMission(apiKey, aiModel, prompt1, chatHistory, inputText || '今日のミッションちょうだい！');
+            const missionText = await generateMission(apiKey, aiModel, prompt1, chatHistory, currentInput);
 
             const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'text', text: missionText };
-            setChatHistory([...newHistory, aiMsg]);
+            setChatHistory(prev => [...prev, aiMsg]);
             setCurrentMission(missionText); // Store the active mission
         } catch (err) {
             setError(err.message || "通信エラーが発生しました");
             // Remove the user message if it failed
-            setChatHistory(chatHistory);
+            setChatHistory(prev => prev.filter(msg => msg.id !== userMsg.id));
         } finally {
             setLoading(false);
         }
@@ -96,31 +88,30 @@ export default function ChatThread({
         setLoading(true);
         setError('');
 
+        const currentInput = inputText || 'ミッション完了！写真を見て！';
         const userMsg = {
             id: Date.now(),
             role: 'user',
             type: 'image',
-            text: inputText || 'ミッション完了！写真を見て！',
+            text: currentInput,
             image: imageBase64
         };
-        const newHistory = [...chatHistory, userMsg];
-        setChatHistory(newHistory);
+        setChatHistory(prev => [...prev, userMsg]);
 
-        const currentInput = inputText;
         setInputText('');
         handleClearImage();
 
         try {
             // パラメータ: apiKey, aiModel, systemInstruction, missionText, imageBase64, chatHistory, newText
-            const resultText = await evaluateReport(apiKey, aiModel, prompt2, currentMission || "ミッション不明", imageBase64, chatHistory, currentInput || "写真を見て！");
+            const resultText = await evaluateReport(apiKey, aiModel, prompt2, currentMission || "ミッション不明", imageBase64, chatHistory, currentInput);
 
             const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'text', text: resultText };
-            setChatHistory([...newHistory, aiMsg]);
+            setChatHistory(prev => [...prev, aiMsg]);
             // Depending on outcome, we might clear currentMission here
         } catch (err) {
             setError(err.message || "予期せぬエラーが発生しました");
             // Remove user msg on fail
-            setChatHistory(chatHistory);
+            setChatHistory(prev => prev.filter(msg => msg.id !== userMsg.id));
         } finally {
             setLoading(false);
         }
@@ -156,13 +147,13 @@ export default function ChatThread({
                 ) : (
                     chatHistory.map((msg) => (
                         <div key={msg.id} className="w-full">
-                            {msg.type === 'image' && msg.image && (
+                            {msg.type === 'image' && msg.image ? (
                                 <div className={`flex w-full mb-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                     <div className="max-w-xs md:max-w-md rounded-xl overflow-hidden shadow-sm border border-earth-300">
                                         <img src={msg.image} alt="ユーザー報告写真" className="w-full object-cover" width={400} height={300} />
                                     </div>
                                 </div>
-                            )}
+                            ) : null}
                             <ChatBubble
                                 message={msg.text}
                                 avatarUrl={msg.role === 'ai' ? avatarData : null}
@@ -175,7 +166,7 @@ export default function ChatThread({
                     ))
                 )}
 
-                {loading && (
+                {loading ? (
                     <div className="flex w-full mt-4 space-x-3 max-w-xl mx-auto p-2 justify-start">
                         <div className="flex-shrink-0">
                             <img className="h-12 w-12 rounded-full border-2 border-earth-300 object-cover bg-earth-200" src={avatarData || './pwa-192x192.png'} alt="AI Avatar" width={48} height={48} />
@@ -185,19 +176,19 @@ export default function ChatThread({
                             <span className="text-earth-500 animate-pulse">入力中...</span>
                         </div>
                     </div>
-                )}
-                {error && (
+                ) : null}
+                {error ? (
                     <div className="w-full max-w-xl mx-auto p-4 bg-red-100 text-red-700 rounded-xl border border-red-200 text-sm mt-4">
                         {error}
                     </div>
-                )}
+                ) : null}
                 <div ref={chatEndRef} />
             </div>
 
             {/* Input Area (Bottom Sticky) */}
             <div className="absolute bottom-0 left-0 right-0 bg-earth-100 border-t border-earth-300 p-2 sm:p-4 shadow-lg">
                 <div className="max-w-3xl mx-auto">
-                    {imagePreview && (
+                    {imagePreview ? (
                         <div className="relative inline-block mb-3">
                             <img src={imagePreview} alt="Preview" className="h-24 w-24 object-cover rounded-lg border-2 border-earth-400 shadow-sm" />
                             <button
@@ -208,7 +199,7 @@ export default function ChatThread({
                                 <RefreshCcw size={14} />
                             </button>
                         </div>
-                    )}
+                    ) : null}
 
                     <div className="flex gap-2">
                         {/* Hidden File Input */}

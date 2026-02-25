@@ -13,13 +13,13 @@ export default function Sidebar({
     return (
         <>
             {/* Overlay for mobile */}
-            {isOpen && (
+            {isOpen ? (
                 <button
                     className="fixed inset-0 bg-black/50 z-40 md:hidden w-full cursor-default"
                     onClick={onClose}
                     aria-label="メニューを閉じる"
                 />
-            )}
+            ) : null}
 
             {/* Sidebar drawer */}
             <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-earth-800 text-earth-100 transform transition-transform duration-300 ease-in-out flex flex-col pt-safe-top

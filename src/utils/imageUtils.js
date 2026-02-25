@@ -30,10 +30,10 @@ export const resizeImage = (file, maxDimension = 1024) => {
                 // JPEG形式で圧縮率80%で出力（Base64 URL）
                 resolve(canvas.toDataURL('image/jpeg', 0.8));
             };
-            img.onerror = (error) => reject(new Error('Image calculation failed'));
+            img.onerror = () => reject(new Error('Image calculation failed'));
             img.src = e.target.result;
         };
-        reader.onerror = (error) => reject(new Error('File reading failed'));
+        reader.onerror = () => reject(new Error('File reading failed'));
         reader.readAsDataURL(file);
     });
 };

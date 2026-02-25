@@ -25,3 +25,4 @@ dist-ssr
 lint_output.json
 lint_output.txt
 src_app_eslint.json
+lint-output-fix.json
