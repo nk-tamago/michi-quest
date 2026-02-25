@@ -33,6 +33,8 @@ export default function ChatBubble({
                         className="h-12 w-12 rounded-full border-2 border-earth-300 object-cover bg-earth-200"
                         src={displayAvatar || './pwa-192x192.png'}
                         alt="AI Avatar"
+                        width={48}
+                        height={48}
                     />
                 </div>
             )}
@@ -44,11 +46,11 @@ export default function ChatBubble({
                 }`}>
                 {/* 吹き出しのしっぽ */}
                 {isUser ? (
-                    <svg className="absolute top-0 -right-[7px] w-[8px] h-[12px]" viewBox="0 0 8 12" fill="none">
+                    <svg aria-hidden="true" className="absolute top-0 -right-[7px] w-[8px] h-[12px]" viewBox="0 0 8 12" fill="none">
                         <path d="M0 0 L8 0 L0 12 Z" fill="currentColor" className="text-earth-800" />
                     </svg>
                 ) : (
-                    <svg className="absolute top-[-1px] -left-[8px] w-[8px] h-[13px]" viewBox="0 0 8 13" fill="none">
+                    <svg aria-hidden="true" className="absolute top-[-1px] -left-[8px] w-[8px] h-[13px]" viewBox="0 0 8 13" fill="none">
                         <path d="M8 1 L0 1 L8 13 Z" fill="white" />
                         <path d="M8 1 L0 1 L8 13" stroke="currentColor" strokeWidth="1" className="text-earth-200" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>

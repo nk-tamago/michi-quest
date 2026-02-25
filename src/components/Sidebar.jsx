@@ -14,9 +14,10 @@ export default function Sidebar({
         <>
             {/* Overlay for mobile */}
             {isOpen && (
-                <div
-                    className="fixed inset-0 bg-black/50 z-40 md:hidden"
+                <button
+                    className="fixed inset-0 bg-black/50 z-40 md:hidden w-full cursor-default"
                     onClick={onClose}
+                    aria-label="メニューを閉じる"
                 />
             )}
 
@@ -27,7 +28,7 @@ export default function Sidebar({
             >
                 <div className="p-4 flex justify-between items-center border-b border-earth-900/50">
                     <h2 className="font-bold tracking-wide">ツーリング履歴</h2>
-                    <button onClick={onClose} className="p-1 md:hidden hover:bg-earth-900/50 rounded-full">
+                    <button onClick={onClose} className="p-1 md:hidden hover:bg-earth-900/50 rounded-full" aria-label="閉じる">
                         <X size={20} />
                     </button>
                 </div>
@@ -51,16 +52,16 @@ export default function Sidebar({
                                 className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors group
                                     ${currentSessionId === session.id ? 'bg-earth-900 text-white shadow-inner' : 'hover:bg-earth-900/40 text-earth-200'}`}
                             >
-                                <div
-                                    className="flex items-center gap-2 flex-1 min-w-0"
+                                <button
+                                    className="flex items-center gap-2 flex-1 min-w-0 text-left outline-none focus-visible:ring-2 focus-visible:ring-earth-800 focus-visible:ring-inset rounded"
                                     onClick={() => { onSelectSession(session.id); onClose(); }}
                                 >
                                     <MessageSquare size={16} className="flex-shrink-0" />
                                     <div className="truncate">
                                         <div className="text-sm font-medium truncate">{session.title || 'ミッション開始前'}</div>
-                                        <div className="text-xs opacity-60">{new Date(session.id).toLocaleDateString()}</div>
+                                        <div className="text-xs opacity-60">{new Intl.DateTimeFormat('ja-JP').format(new Date(session.id))}</div>
                                     </div>
-                                </div>
+                                </button>
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
@@ -68,8 +69,9 @@ export default function Sidebar({
                                             onDeleteSession(session.id);
                                         }
                                     }}
-                                    className="p-1.5 opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-earth-900 rounded-md transition-all flex-shrink-0"
+                                    className="p-1.5 opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-earth-900 rounded-md transition-[opacity,color,background-color] flex-shrink-0"
                                     title="削除"
+                                    aria-label="履歴を削除"
                                 >
                                     <Trash2 size={16} />
                                 </button>

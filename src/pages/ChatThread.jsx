@@ -159,7 +159,7 @@ export default function ChatThread({
                             {msg.type === 'image' && msg.image && (
                                 <div className={`flex w-full mb-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                     <div className="max-w-xs md:max-w-md rounded-xl overflow-hidden shadow-sm border border-earth-300">
-                                        <img src={msg.image} alt="ユーザー報告写真" className="w-full object-cover" />
+                                        <img src={msg.image} alt="ユーザー報告写真" className="w-full object-cover" width={400} height={300} />
                                     </div>
                                 </div>
                             )}
@@ -178,7 +178,7 @@ export default function ChatThread({
                 {loading && (
                     <div className="flex w-full mt-4 space-x-3 max-w-xl mx-auto p-2 justify-start">
                         <div className="flex-shrink-0">
-                            <img className="h-12 w-12 rounded-full border-2 border-earth-300 object-cover bg-earth-200" src={avatarData || './pwa-192x192.png'} alt="AI Avatar" />
+                            <img className="h-12 w-12 rounded-full border-2 border-earth-300 object-cover bg-earth-200" src={avatarData || './pwa-192x192.png'} alt="AI Avatar" width={48} height={48} />
                         </div>
                         <div className="relative px-5 py-4 text-base shadow-sm bg-white text-earth-900 rounded-2xl rounded-tl-none border border-earth-200 flex items-center gap-2">
                             <Loader2 className="animate-spin text-earth-500" size={20} />
@@ -203,6 +203,7 @@ export default function ChatThread({
                             <button
                                 onClick={handleClearImage}
                                 className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
+                                aria-label="画像をクリア"
                             >
                                 <RefreshCcw size={14} />
                             </button>
@@ -226,6 +227,7 @@ export default function ChatThread({
                             disabled={loading}
                             className="p-3 md:p-4 bg-earth-200 text-earth-700 rounded-xl border-2 border-earth-300 hover:bg-earth-300 transition-colors disabled:opacity-50"
                             title="写真を添付"
+                            aria-label="写真を添付"
                         >
                             <Camera size={24} />
                         </button>
@@ -246,6 +248,7 @@ export default function ChatThread({
                             onClick={handleSend}
                             disabled={loading || (!inputText.trim() && !imageBase64 && currentMission)}
                             className="p-3 md:p-4 bg-earth-800 text-earth-100 rounded-xl hover:bg-earth-900 transition-colors disabled:opacity-50 flex items-center justify-center shrink-0"
+                            aria-label="送信"
                         >
                             {loading ? <Loader2 className="animate-spin" size={24} /> : <Send size={24} />}
                         </button>

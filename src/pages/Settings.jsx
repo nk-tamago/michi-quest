@@ -50,8 +50,11 @@ export default function SettingsPath({
                 <form onSubmit={handleSave} className="space-y-5">
                     {/* API Key */}
                     <div className="space-y-1">
-                        <label className="block text-sm font-semibold text-earth-800">Gemini API キー (必須)</label>
+                        <label htmlFor="geminiApiKey" className="block text-sm font-semibold text-earth-800">Gemini API キー (必須)</label>
                         <input
+                            id="geminiApiKey"
+                            name="geminiApiKey"
+                            autoComplete="off"
                             type="password"
                             value={apiKey}
                             onChange={(e) => setApiKey(e.target.value)}
@@ -64,8 +67,10 @@ export default function SettingsPath({
 
                     {/* AI Model Selection */}
                     <div className="space-y-1">
-                        <label className="block text-sm font-semibold text-earth-800">AI モデル</label>
+                        <label htmlFor="aiModel" className="block text-sm font-semibold text-earth-800">AI モデル</label>
                         <select
+                            id="aiModel"
+                            name="aiModel"
                             value={aiModel}
                             onChange={(e) => setAiModel(e.target.value)}
                             className="w-full px-4 py-2 bg-earth-100 border border-earth-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-earth-800 transition-shadow appearance-none cursor-pointer"
@@ -87,7 +92,7 @@ export default function SettingsPath({
                             {/* 通常 */}
                             <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200">
                                 <div className="w-12 h-12 rounded-full bg-earth-200 border-2 border-dashed border-earth-300 flex items-center justify-center overflow-hidden flex-shrink-0">
-                                    {avatarData ? <img src={avatarData} alt="Normal" className="w-full h-full object-cover" /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
+                                    {avatarData ? <img src={avatarData} alt="Normal" className="w-full h-full object-cover" width={48} height={48} /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
                                 </div>
                                 <div className="flex-1">
                                     <div className="text-xs font-bold text-earth-800 mb-1">通常 (デフォルト)</div>
@@ -99,7 +104,7 @@ export default function SettingsPath({
                             {/* 怒り */}
                             <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200">
                                 <div className="w-12 h-12 rounded-full bg-earth-200 border-2 border-dashed border-earth-300 flex items-center justify-center overflow-hidden flex-shrink-0">
-                                    {avatarAngry ? <img src={avatarAngry} alt="Angry" className="w-full h-full object-cover" /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
+                                    {avatarAngry ? <img src={avatarAngry} alt="Angry" className="w-full h-full object-cover" width={48} height={48} /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
                                 </div>
                                 <div className="flex-1">
                                     <div className="text-xs font-bold text-earth-800 mb-1">怒り / 罵倒</div>
@@ -111,7 +116,7 @@ export default function SettingsPath({
                             {/* 喜び */}
                             <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200">
                                 <div className="w-12 h-12 rounded-full bg-earth-200 border-2 border-dashed border-earth-300 flex items-center justify-center overflow-hidden flex-shrink-0">
-                                    {avatarJoy ? <img src={avatarJoy} alt="Joy" className="w-full h-full object-cover" /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
+                                    {avatarJoy ? <img src={avatarJoy} alt="Joy" className="w-full h-full object-cover" width={48} height={48} /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
                                 </div>
                                 <div className="flex-1">
                                     <div className="text-xs font-bold text-earth-800 mb-1">喜び / 褒める</div>
@@ -123,7 +128,7 @@ export default function SettingsPath({
                             {/* 呆れ */}
                             <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200">
                                 <div className="w-12 h-12 rounded-full bg-earth-200 border-2 border-dashed border-earth-300 flex items-center justify-center overflow-hidden flex-shrink-0">
-                                    {avatarDisgust ? <img src={avatarDisgust} alt="Disgust" className="w-full h-full object-cover" /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
+                                    {avatarDisgust ? <img src={avatarDisgust} alt="Disgust" className="w-full h-full object-cover" width={48} height={48} /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
                                 </div>
                                 <div className="flex-1">
                                     <div className="text-xs font-bold text-earth-800 mb-1">呆れ / ツッコミ</div>
@@ -136,8 +141,10 @@ export default function SettingsPath({
 
                     {/* Prompt 1 */}
                     <div className="space-y-1">
-                        <label className="block text-sm font-semibold text-earth-800">ミッション生成キャラクター設定</label>
+                        <label htmlFor="prompt1" className="block text-sm font-semibold text-earth-800">ミッション生成キャラクター設定</label>
                         <textarea
+                            id="prompt1"
+                            name="prompt1"
                             value={prompt1}
                             onChange={(e) => setPrompt1(e.target.value)}
                             rows={4}
@@ -148,8 +155,10 @@ export default function SettingsPath({
 
                     {/* Prompt 2 */}
                     <div className="space-y-1">
-                        <label className="block text-sm font-semibold text-earth-800">写真判定キャラクター設定</label>
+                        <label htmlFor="prompt2" className="block text-sm font-semibold text-earth-800">写真判定キャラクター設定</label>
                         <textarea
+                            id="prompt2"
+                            name="prompt2"
                             value={prompt2}
                             onChange={(e) => setPrompt2(e.target.value)}
                             rows={4}

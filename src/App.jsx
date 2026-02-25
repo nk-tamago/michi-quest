@@ -7,7 +7,10 @@ import { useLocalStorage } from './utils/useLocalStorage';
 import { APP_CONFIG } from './config';
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState('chat');
+  const [currentTab, setCurrentTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('tab') || 'chat';
+  });
 
   const [apiKey, setApiKey] = useLocalStorage('geminiApiKey', '');
   const [aiModel, setAiModel] = useLocalStorage('geminiAiModel', 'gemini-2.5-flash');
@@ -37,7 +40,9 @@ export default function App() {
     if (sessions.length > 0 && currentSessionId) {
       const activeSession = sessions.find(s => s.id === currentSessionId);
       if (activeSession) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setChatHistory(activeSession.history || []);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setCurrentMission(activeSession.currentMission || '');
       }
     } else if (sessions.length === 0) {
@@ -59,9 +64,10 @@ export default function App() {
             setSessions([newSession]);
             setCurrentSessionId(newId);
           }
-        } catch (e) { }
+        } catch (e) { /* ignore */ }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSessionId]); // sessions に依存させると入力のたびに呼ばれてしまうので初期ロード時とID変更時のみ
 
   // --- State更新時に、現在のセッションへ同期するラッパー関数 ---
@@ -125,6 +131,7 @@ export default function App() {
   // 初回起動時、APIキーがなければ強制的に設定タブへ
   useEffect(() => {
     if (!apiKey) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentTab('settings');
     }
   }, [apiKey]);
@@ -133,9 +140,11 @@ export default function App() {
     if (!apiKey && tabId !== 'settings') {
       alert("まずは設定画面でGemini APIキーを入力してください。");
       setCurrentTab('settings');
+      window.history.replaceState(null, '', `?tab=settings`);
       return;
     }
     setCurrentTab(tabId);
+    window.history.replaceState(null, '', `?tab=${tabId}`);
   };
 
   const handleSettingsSave = () => {

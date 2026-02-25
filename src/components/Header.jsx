@@ -15,6 +15,7 @@ export default function Header({ currentTab, onChangeTab, onToggleSidebar, title
                         <button
                             onClick={onToggleSidebar}
                             className="p-1 rounded-md hover:bg-earth-900/50 transition-colors md:hidden flex-shrink-0"
+                            aria-label="メニューを開く"
                         >
                             <Menu size={24} />
                         </button>
