@@ -85,3 +85,33 @@ export const evaluateReport = async (apiKey, modelName = 'gemini-2.5-flash', sys
     throw new Error(error.message || "写真の判定に失敗しました");
   }
 };
+
+/**
+ * OpenStreetMap Nominatim API を用いて、地名が実在するか確認する
+ * @param {string} query - 検索する地名や施設名
+ * @returns {Promise<boolean>} 実在する場合は true、見つからない場合は false
+ */
+export const verifyLocationExists = async (query) => {
+  if (!query) return false;
+  try {
+    // Nominatimの利用規約（1秒間に1回以下のリクエストなど）に配慮
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'MichiQuestApp/1.0' // API規約としてUser-Agentが推奨される
+      }
+    });
+    
+    if (!response.ok) {
+        console.warn(`Nominatim API returned status: ${response.status}`);
+        return true; // API制限やエラー時は、ユーザー体験を損なわないよう一旦trueとして通す方針
+    }
+    
+    const data = await response.json();
+    console.log("Nominatim API result for", query, ":", data);
+    return data && data.length > 0;
+  } catch (error) {
+    console.warn("Geocoding verification failed, passing through.", error);
+    return true; // ネットワークエラー等でも進行不能を防ぐため一旦通す設計
+  }
+};

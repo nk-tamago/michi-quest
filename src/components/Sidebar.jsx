@@ -1,5 +1,13 @@
 import React from 'react';
-import { X, Plus, MessageSquare, Trash2 } from 'lucide-react';
+import { X, Plus, MessageSquare, Trash2, Award } from 'lucide-react';
+
+const getRank = (score) => {
+    if (score < 100) return "初心者ライダー";
+    if (score < 500) return "週末ツアラー";
+    if (score < 1000) return "道探求者";
+    if (score < 3000) return "ベテラン探索者";
+    return "MichiQuestマスター";
+};
 
 export default function Sidebar({
     isOpen,
@@ -8,7 +16,8 @@ export default function Sidebar({
     currentSessionId,
     onSelectSession,
     onNewSession,
-    onDeleteSession
+    onDeleteSession,
+    totalScore = 0
 }) {
     return (
         <>
@@ -31,6 +40,20 @@ export default function Sidebar({
                     <button onClick={onClose} className="p-1 md:hidden hover:bg-earth-900/50 rounded-full" aria-label="閉じる">
                         <X size={20} />
                     </button>
+                </div>
+
+                {/* スコア・称号表示エリア */}
+                <div className="p-4 bg-earth-900/30 border-b border-earth-900/50">
+                    <div className="text-xs text-earth-300 mb-1">現在の称号</div>
+                    <div className="flex items-end gap-2 mb-2">
+                        <span className="text-xl font-bold bg-gradient-to-r from-yellow-400 to-amber-600 bg-clip-text text-transparent">
+                            {getRank(totalScore)}
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-earth-400">累計スコア</span>
+                        <span className="font-mono font-bold text-earth-100">{totalScore} pt</span>
+                    </div>
                 </div>
 
                 <div className="p-4">

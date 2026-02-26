@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import ChatBubble from '../components/ChatBubble';
 import Button from '../components/Button';
 import { Camera, Send, Loader2, Map as MapIcon, RefreshCcw } from 'lucide-react';
-import { generateMission, evaluateReport } from '../utils/api';
+import { generateMission, evaluateReport, verifyLocationExists } from '../utils/api';
 import { resizeImage } from '../utils/imageUtils';
 import { getGPSFromImage } from '../utils/exifUtils';
 import { APP_CONFIG } from '../config';
@@ -16,10 +16,12 @@ export default function ChatThread({
     avatarDisgust,
     prompt1,
     prompt2,
+    destinationList,
     chatHistory,
     setChatHistory,
     currentMission,
-    setCurrentMission
+    setCurrentMission,
+    onScoreAdded
 }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -47,8 +49,62 @@ export default function ChatThread({
         setInputText('');
 
         try {
-            // パラメータ: apiKey, aiModel, systemInstruction, chatHistory, newText
-            const missionText = await generateMission(apiKey, aiModel, prompt1, chatHistory, currentInput);
+            // ハルシネーション対策: 目的地リストがあればプロンプトに結合する
+            let finalPrompt = prompt1;
+            const validDestinations = (destinationList || '').trim();
+            if (validDestinations) {
+                finalPrompt += `\n\n【重要】ミッションの目的地は、必ず以下のリストの中から実在するものを1つだけ選んでください。\n${validDestinations}`;
+            }
+
+            let missionText = '';
+            let currentHistory = chatHistory;
+            const maxRetries = 3;
+            let isValid = false;
+
+            for (let i = 0; i < maxRetries; i++) {
+                // パラメータ: apiKey, aiModel, systemInstruction, chatHistory, newText
+                missionText = await generateMission(apiKey, aiModel, finalPrompt, currentHistory, i === 0 ? currentInput : "その場所は実在しません。実在する別の場所を再生成してください。");
+
+                // AREAタグからnameを抽出
+                const areaMatch = missionText.match(/\[AREA:\s*({[\s\S]*?})\]/);
+                if (areaMatch) {
+                    try {
+                        const areaData = JSON.parse(areaMatch[1]);
+                        if (areaData.name) {
+                            // 実在チェック
+                            const exists = await verifyLocationExists(areaData.name);
+                            if (exists) {
+                                isValid = true;
+                                break;
+                            } else {
+                                console.log(`Retry ${i + 1}: Location ${areaData.name} not found.`);
+                                // AIが生成したテキストを文脈に追加して、「それは実在しない」とフィードバックする
+                                currentHistory = [
+                                    ...currentHistory,
+                                    { id: Date.now() + Math.random(), role: 'user', type: 'text', text: i === 0 ? currentInput : "その場所は実在しません。実在する別の場所を再生成してください。" },
+                                    { id: Date.now() + Math.random(), role: 'ai', type: 'text', text: missionText }
+                                ];
+                            }
+                        } else {
+                            // 名前がない場合は判定できないので通す
+                            isValid = true;
+                            break;
+                        }
+                    } catch (e) {
+                        // パース失敗時も強制的に通す
+                        isValid = true;
+                        break;
+                    }
+                } else {
+                    // AREAタグが含まれない（目的地指定なし）のポエムミッションなども通す
+                    isValid = true;
+                    break;
+                }
+            }
+
+            if (!isValid) {
+                console.warn("Max retries reached. Using the last generated mission.");
+            }
 
             const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'text', text: missionText };
             setChatHistory(prev => [...prev, aiMsg]);
@@ -116,7 +172,19 @@ export default function ChatThread({
             // パラメータ: apiKey, aiModel, systemInstruction, missionText, imageBase64, chatHistory, newText
             const resultText = await evaluateReport(apiKey, aiModel, prompt2, currentMission || "ミッション不明", imageBase64, chatHistory, currentInput);
 
-            const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'text', text: resultText };
+            // SCOREタグのパース
+            let displayMsg = resultText;
+            const scoreMatch = resultText.match(/\[SCORE:\s*(\d+)\]/i);
+            if (scoreMatch) {
+                const score = parseInt(scoreMatch[1], 10);
+                if (!isNaN(score) && onScoreAdded) {
+                    onScoreAdded(score);
+                }
+                // 表示用テキストからはSCOREタグを削除
+                displayMsg = resultText.replace(/\[SCORE:\s*\d+\]/ig, '').trim();
+            }
+
+            const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'text', text: displayMsg };
             setChatHistory(prev => [...prev, aiMsg]);
             // Depending on outcome, we might clear currentMission here
         } catch (err) {

@@ -25,6 +25,12 @@ export default function App() {
   const [prompt1, setPrompt1] = useLocalStorage('aiPrompt1', APP_CONFIG.defaultPrompt1);
   const [prompt2, setPrompt2] = useLocalStorage('aiPrompt2', APP_CONFIG.defaultPrompt2);
 
+  // 目的地リスト（ハルシネーション対策）
+  const [destinationList, setDestinationList] = useLocalStorage('destinationList', APP_CONFIG.defaultDestinationList);
+
+  // 累計スコア
+  const [totalScore, setTotalScore] = useLocalStorage('totalScore', 0);
+
   // セッション管理系
   // 初回ロード時に既存のchatHistory互換性維持等を含めて遅延評価(Lazy Initialization)
   const [sessions, setSessions] = useLocalStorage('chatSessions', () => {
@@ -234,6 +240,7 @@ export default function App() {
           onSelectSession={(id) => setCurrentSessionId(id)}
           onNewSession={handleNewSession}
           onDeleteSession={handleDeleteSession}
+          totalScore={totalScore}
         />
 
         <main className="flex-1 w-full bg-earth-100 h-full overflow-hidden flex flex-col relative">
@@ -248,6 +255,7 @@ export default function App() {
                 avatarDisgust={avatarDisgust} setAvatarDisgust={setAvatarDisgust}
                 prompt1={prompt1} setPrompt1={setPrompt1}
                 prompt2={prompt2} setPrompt2={setPrompt2}
+                destinationList={destinationList} setDestinationList={setDestinationList}
                 onSave={handleSettingsSave}
               />
             </div>
@@ -272,10 +280,12 @@ export default function App() {
                 avatarDisgust={avatarDisgust}
                 prompt1={prompt1}
                 prompt2={prompt2}
+                destinationList={destinationList}
                 chatHistory={chatHistory}
                 setChatHistory={handleUpdateChatHistory}
                 currentMission={currentMission}
                 setCurrentMission={handleUpdateCurrentMission}
+                onScoreAdded={(score) => setTotalScore(prev => prev + score)}
               />
             )
           )}

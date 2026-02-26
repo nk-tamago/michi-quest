@@ -13,6 +13,7 @@ export default function SettingsPath({
     avatarDisgust, setAvatarDisgust,
     prompt1, setPrompt1,
     prompt2, setPrompt2,
+    destinationList, setDestinationList,
     onSave
 }) {
     const defaultInputRef = useRef(null);
@@ -170,6 +171,24 @@ export default function SettingsPath({
                             rows={4}
                             className="w-full px-4 py-2 bg-earth-100 border border-earth-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-earth-800 transition-shadow text-sm"
                             required
+                        />
+                    </div>
+
+                    {/* Destination List (Hallucination Prevention) */}
+                    <div className="space-y-1">
+                        <div className="flex justify-between items-end">
+                            <label htmlFor="destinationList" className="block text-sm font-semibold text-earth-800">目的地候補リスト (実在確認用)</label>
+                            <button type="button" onClick={() => setDestinationList(APP_CONFIG.defaultDestinationList)} className="text-xs text-blue-600 underline">デフォルトに戻す</button>
+                        </div>
+                        <p className="text-xs text-earth-600 mb-2">AIが実在しない地名を作成するのを防ぐため、ここに入力されたリストの中からミッションの目的地を生成します。改行区切りで入力してください。</p>
+                        <textarea
+                            id="destinationList"
+                            name="destinationList"
+                            value={destinationList}
+                            onChange={(e) => setDestinationList(e.target.value)}
+                            rows={4}
+                            className="w-full px-4 py-2 bg-earth-100 border border-earth-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-earth-800 transition-shadow text-sm"
+                            placeholder="道の駅○○&#10;○○展望台&#10;..."
                         />
                     </div>
 
