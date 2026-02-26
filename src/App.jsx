@@ -212,7 +212,8 @@ export default function App() {
     .filter(msg => msg.role === 'user' && msg.type === 'image' && msg.location)
     .map(msg => ({
       position: [msg.location.lat, msg.location.lng],
-      popupText: `撮影地点: ${msg.text.slice(0, 20)}...`
+      popupText: `撮影地点: ${msg.text.slice(0, 20)}...`,
+      image: msg.image
     }));
 
   return (

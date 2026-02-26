@@ -76,11 +76,33 @@ export default function MapInteractive({ center = [35.681236, 139.767125], zoom 
                 )}
 
                 {/* Other Markers */}
-                {markers.map((marker, idx) => (
-                    <Marker key={idx} position={marker.position}>
-                        <Popup>{marker.popupText}</Popup>
-                    </Marker>
-                ))}
+                {markers.map((marker, idx) => {
+                    let customIcon = DefaultIcon;
+
+                    if (marker.image) {
+                        const html = `<div style="width: 48px; height: 48px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); overflow: hidden; background-image: url('${marker.image}'); background-size: cover; background-position: center; pointer-events: none;"></div>`;
+                        customIcon = L.divIcon({
+                            html: html,
+                            className: '', // Tailwind or Leaflet default classes will just wrap this
+                            iconSize: [48, 48],
+                            iconAnchor: [24, 24],
+                            popupAnchor: [0, -24]
+                        });
+                    }
+
+                    return (
+                        <Marker key={idx} position={marker.position} icon={customIcon}>
+                            <Popup>
+                                <div className="text-center max-w-[200px]">
+                                    {marker.image && (
+                                        <img src={marker.image} alt="ユーザー報告写真" className="w-full h-auto rounded-lg mb-2 shadow-sm object-cover" />
+                                    )}
+                                    <p className="font-bold text-sm text-earth-800">{marker.popupText}</p>
+                                </div>
+                            </Popup>
+                        </Marker>
+                    );
+                })}
             </MapContainer>
         </div>
     );
