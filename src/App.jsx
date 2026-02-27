@@ -282,9 +282,9 @@ export default function App() {
             // currentSessionIdがない場合は空画面に近いものを出すか、強制Start
             !currentSessionId ? (
               <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center p-4 text-earth-800">
-                <p className="mb-4">新しいツーリング履歴を作成してください</p>
+                <p className="mb-4">新しいミッション履歴を作成してください</p>
                 <button onClick={handleNewSession} className="px-6 py-3 bg-earth-800 text-white rounded-xl shadow-md font-bold hover:bg-earth-900 transition-colors">
-                  新しいツーリングをはじめる
+                  新しいミッションをはじめる
                 </button>
               </div>
             ) : (
