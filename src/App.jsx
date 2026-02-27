@@ -17,10 +17,10 @@ export default function App() {
   const [aiModel, setAiModel] = useLocalStorage('geminiAiModel', 'gemini-2.5-flash');
 
   // アバター系
-  const [avatarData, setAvatarData] = useLocalStorage('aiAvatarData', '');
-  const [avatarAngry, setAvatarAngry] = useLocalStorage('aiAvatarAngry', '');
-  const [avatarJoy, setAvatarJoy] = useLocalStorage('aiAvatarJoy', '');
-  const [avatarDisgust, setAvatarDisgust] = useLocalStorage('aiAvatarDisgust', '');
+  const [avatarData, setAvatarData] = useLocalStorage('aiAvatarData', APP_CONFIG.defaultAvatarNormal);
+  const [avatarAngry, setAvatarAngry] = useLocalStorage('aiAvatarAngry', APP_CONFIG.defaultAvatarAngry);
+  const [avatarJoy, setAvatarJoy] = useLocalStorage('aiAvatarJoy', APP_CONFIG.defaultAvatarJoy);
+  const [avatarDisgust, setAvatarDisgust] = useLocalStorage('aiAvatarDisgust', APP_CONFIG.defaultAvatarDisgust);
 
   const [basePrompt, setBasePrompt] = useLocalStorage('aiBasePrompt', APP_CONFIG.baseCharacterPrompt);
   const [prompt1, setPrompt1] = useLocalStorage('aiPrompt1', APP_CONFIG.defaultPrompt1);

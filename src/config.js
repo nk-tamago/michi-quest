@@ -1,4 +1,8 @@
 import baseCharacterPrompt from '../doc/michi-noma-character.md?raw';
+import defaultAvatarNormal from './assets/avatars/normal.png';
+import defaultAvatarAngry from './assets/avatars/angry.png';
+import defaultAvatarJoy from './assets/avatars/joy.png';
+import defaultAvatarDisgust from './assets/avatars/disgust.png';
 
 // アプリケーション全体の設定値（モデル一覧やデフォルトプロンプトなど）を外部化
 export const APP_CONFIG = {
@@ -31,5 +35,11 @@ export const APP_CONFIG = {
     "ナビゲーター、ミチ・ノマです。ミッションの準備が完了しました。目的地を選定するため、現在地周辺の環境データを報告してください。",
     "……システムオンライン。あなたの125ccの機動力を試す時が来ました。効率的なルーティングを期待しています。",
     "接続完了。ミッション要求を受信可能な状態です。……言っておきますが、途中で美味しそうな飲食店に寄り道するなどといった、非合理的なルート変更は推奨しませんからね。"
-  ]
+  ],
+
+  // AIキャラクターアバターのデフォルト画像
+  defaultAvatarNormal,
+  defaultAvatarAngry,
+  defaultAvatarJoy,
+  defaultAvatarDisgust
 };

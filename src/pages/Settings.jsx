@@ -94,50 +94,70 @@ export default function SettingsPath({
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {/* 通常 */}
-                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200">
+                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200 relative">
                                 <div className="w-12 h-12 rounded-full bg-earth-200 border-2 border-dashed border-earth-300 flex items-center justify-center overflow-hidden flex-shrink-0">
                                     {avatarData ? <img src={avatarData} alt="Normal" className="w-full h-full object-cover" width={48} height={48} /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
                                 </div>
                                 <div className="flex-1">
-                                    <div className="text-xs font-bold text-earth-800 mb-1">通常 (デフォルト)</div>
+                                    <div className="text-xs font-bold text-earth-800 mb-1 flex justify-between items-center">
+                                        <span>通常 (デフォルト)</span>
+                                        {avatarData !== APP_CONFIG.defaultAvatarNormal && (
+                                            <button type="button" onClick={() => setAvatarData(APP_CONFIG.defaultAvatarNormal)} className="text-[10px] text-blue-600 underline">デフォルトに戻す</button>
+                                        )}
+                                    </div>
                                     <input type="file" accept="image/*" ref={defaultInputRef} onChange={(e) => handleImageUpload(e, setAvatarData)} className="hidden" />
-                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); defaultInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">選択</Button>
+                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); defaultInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">画像を変更</Button>
                                 </div>
                             </div>
 
                             {/* 怒り */}
-                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200">
+                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200 relative">
                                 <div className="w-12 h-12 rounded-full bg-earth-200 border-2 border-dashed border-earth-300 flex items-center justify-center overflow-hidden flex-shrink-0">
                                     {avatarAngry ? <img src={avatarAngry} alt="Angry" className="w-full h-full object-cover" width={48} height={48} /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
                                 </div>
                                 <div className="flex-1">
-                                    <div className="text-xs font-bold text-earth-800 mb-1">怒り / 罵倒</div>
+                                    <div className="text-xs font-bold text-earth-800 mb-1 flex justify-between items-center">
+                                        <span>怒り / 罵倒</span>
+                                        {avatarAngry !== APP_CONFIG.defaultAvatarAngry && (
+                                            <button type="button" onClick={() => setAvatarAngry(APP_CONFIG.defaultAvatarAngry)} className="text-[10px] text-blue-600 underline">デフォルトに戻す</button>
+                                        )}
+                                    </div>
                                     <input type="file" accept="image/*" ref={angryInputRef} onChange={(e) => handleImageUpload(e, setAvatarAngry)} className="hidden" />
-                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); angryInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">選択</Button>
+                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); angryInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">画像を変更</Button>
                                 </div>
                             </div>
 
                             {/* 喜び */}
-                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200">
+                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200 relative">
                                 <div className="w-12 h-12 rounded-full bg-earth-200 border-2 border-dashed border-earth-300 flex items-center justify-center overflow-hidden flex-shrink-0">
                                     {avatarJoy ? <img src={avatarJoy} alt="Joy" className="w-full h-full object-cover" width={48} height={48} /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
                                 </div>
                                 <div className="flex-1">
-                                    <div className="text-xs font-bold text-earth-800 mb-1">喜び / 褒める</div>
+                                    <div className="text-xs font-bold text-earth-800 mb-1 flex justify-between items-center">
+                                        <span>喜び / 褒める</span>
+                                        {avatarJoy !== APP_CONFIG.defaultAvatarJoy && (
+                                            <button type="button" onClick={() => setAvatarJoy(APP_CONFIG.defaultAvatarJoy)} className="text-[10px] text-blue-600 underline">デフォルトに戻す</button>
+                                        )}
+                                    </div>
                                     <input type="file" accept="image/*" ref={joyInputRef} onChange={(e) => handleImageUpload(e, setAvatarJoy)} className="hidden" />
-                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); joyInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">選択</Button>
+                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); joyInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">画像を変更</Button>
                                 </div>
                             </div>
 
                             {/* 呆れ */}
-                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200">
+                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200 relative">
                                 <div className="w-12 h-12 rounded-full bg-earth-200 border-2 border-dashed border-earth-300 flex items-center justify-center overflow-hidden flex-shrink-0">
                                     {avatarDisgust ? <img src={avatarDisgust} alt="Disgust" className="w-full h-full object-cover" width={48} height={48} /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
                                 </div>
                                 <div className="flex-1">
-                                    <div className="text-xs font-bold text-earth-800 mb-1">呆れ / ツッコミ</div>
+                                    <div className="text-xs font-bold text-earth-800 mb-1 flex justify-between items-center">
+                                        <span>呆れ / ツッコミ</span>
+                                        {avatarDisgust !== APP_CONFIG.defaultAvatarDisgust && (
+                                            <button type="button" onClick={() => setAvatarDisgust(APP_CONFIG.defaultAvatarDisgust)} className="text-[10px] text-blue-600 underline">デフォルトに戻す</button>
+                                        )}
+                                    </div>
                                     <input type="file" accept="image/*" ref={disgustInputRef} onChange={(e) => handleImageUpload(e, setAvatarDisgust)} className="hidden" />
-                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); disgustInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">選択</Button>
+                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); disgustInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">画像を変更</Button>
                                 </div>
                             </div>
                         </div>
