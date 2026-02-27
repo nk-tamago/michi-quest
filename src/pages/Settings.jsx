@@ -16,7 +16,8 @@ export default function SettingsPath({
     prompt2, setPrompt2,
     prompt3, setPrompt3,
     destinationList, setDestinationList,
-    onSave
+    onSave,
+    onClearData
 }) {
     const defaultInputRef = useRef(null);
     const angryInputRef = useRef(null);
@@ -234,6 +235,25 @@ export default function SettingsPath({
                         </Button>
                     </div>
                 </form>
+            </div>
+
+            {/* Data Management Section */}
+            <div className="bg-white rounded-2xl shadow-sm border border-red-200 p-6 space-y-4">
+                <h3 className="text-lg font-bold text-red-800 border-b border-red-200 pb-2">データ管理 (Danger Zone)</h3>
+                <p className="text-sm text-earth-700">これまで獲得した「称号」と「通算スコア」のデータを初期化します。この操作は取り消せません。</p>
+                <div className="flex justify-start">
+                    <button
+                        type="button"
+                        className="px-4 py-2 bg-red-100 text-red-700 font-bold rounded-lg border border-red-300 hover:bg-red-200 transition-colors"
+                        onClick={() => {
+                            if (window.confirm("本当に称号とスコアデータを初期化しますか？\n（この操作は元に戻せません）")) {
+                                onClearData();
+                            }
+                        }}
+                    >
+                        データを初期化する
+                    </button>
+                </div>
             </div>
         </div>
     );

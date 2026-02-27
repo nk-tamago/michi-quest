@@ -178,6 +178,12 @@ export default function App() {
     }));
   };
 
+  const handleClearData = () => {
+    setTotalScore(0);
+    setTitlesCollection([]);
+    alert('過去の称号とスコアデータを初期化しました。');
+  };
+
   const handleNewSession = () => {
     const newId = Date.now();
     const randomGreeting = APP_CONFIG.greetings[Math.floor(Math.random() * APP_CONFIG.greetings.length)];
@@ -293,6 +299,7 @@ export default function App() {
                 prompt3={prompt3} setPrompt3={setPrompt3}
                 destinationList={destinationList} setDestinationList={setDestinationList}
                 onSave={handleSettingsSave}
+                onClearData={handleClearData}
               />
             </div>
           )}
