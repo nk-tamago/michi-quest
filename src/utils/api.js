@@ -1,5 +1,26 @@
 import { GoogleGenAI } from '@google/genai';
 
+// 会話履歴をGeminiが受け付ける形式にフォーマットする（system除外、連続する同ロールの結合）
+const formatHistory = (chatHistory) => {
+  const formatted = [];
+  for (const msg of chatHistory) {
+    if (msg.role === 'system') continue;
+    
+    const role = msg.role === 'ai' ? 'model' : 'user';
+    const textStr = msg.type === 'image' ? `[写真付きメッセージ: ${msg.text}]` : (msg.text || '');
+    
+    if (formatted.length > 0 && formatted[formatted.length - 1].role === role) {
+      formatted[formatted.length - 1].parts[0].text += '\n\n' + textStr;
+    } else {
+      formatted.push({
+        role: role,
+        parts: [{ text: textStr }]
+      });
+    }
+  }
+  return formatted;
+};
+
 // API呼び出し用のラッパーモジュール
 export const generateMission = async (apiKey, modelName = 'gemini-2.5-flash', systemInstruction, chatHistory = [], newText = "今日のミッションをお願いします。") => {
   if (!apiKey) throw new Error("APIキーが設定されていません");
@@ -7,19 +28,14 @@ export const generateMission = async (apiKey, modelName = 'gemini-2.5-flash', sy
   const ai = new GoogleGenAI({ apiKey: apiKey });
   
   try {
-    // 過去の履歴を Gemini の contents 形式に変換
-    const formattedHistory = chatHistory.map(msg => ({
-      role: msg.role === 'ai' ? 'model' : 'user',
-      parts: [
-        { text: msg.type === 'image' ? '[写真が送信されました]' : msg.text }
-      ]
-    }));
+    const formattedHistory = formatHistory(chatHistory);
 
-    // 今回の新しいリクエストを追加
-    const contents = [
-      ...formattedHistory,
-      { role: 'user', parts: [{ text: newText }] }
-    ];
+    const contents = [...formattedHistory];
+    if (contents.length > 0 && contents[contents.length - 1].role === 'user') {
+      contents[contents.length - 1].parts[0].text += '\n\n' + newText;
+    } else {
+      contents.push({ role: 'user', parts: [{ text: newText }] });
+    }
 
     const response = await ai.models.generateContent({
       model: modelName,
@@ -36,6 +52,36 @@ export const generateMission = async (apiKey, modelName = 'gemini-2.5-flash', sy
   }
 };
 
+export const chatWithOperator = async (apiKey, modelName = 'gemini-2.5-flash', systemInstruction, chatHistory = [], newText = "進捗どう？") => {
+  if (!apiKey) throw new Error("APIキーが設定されていません");
+  
+  const ai = new GoogleGenAI({ apiKey: apiKey });
+  
+  try {
+    const formattedHistory = formatHistory(chatHistory);
+
+    const contents = [...formattedHistory];
+    if (contents.length > 0 && contents[contents.length - 1].role === 'user') {
+      contents[contents.length - 1].parts[0].text += '\n\n' + newText;
+    } else {
+      contents.push({ role: 'user', parts: [{ text: newText }] });
+    }
+
+    const response = await ai.models.generateContent({
+      model: modelName,
+      contents: contents,
+      config: {
+        systemInstruction: systemInstruction,
+        temperature: 0.9,
+      }
+    });
+    return response.text;
+  } catch (error) {
+    console.error("Operator Chat Error:", error);
+    throw new Error(error.message || "チャット応答に失敗しました");
+  }
+};
+
 export const evaluateReport = async (apiKey, modelName = 'gemini-2.5-flash', systemInstruction, missionText, imageBase64, chatHistory = [], newText = "写真を見て！") => {
   if (!apiKey) throw new Error("APIキーが設定されていません");
   
@@ -46,13 +92,7 @@ export const evaluateReport = async (apiKey, modelName = 'gemini-2.5-flash', sys
     const base64Data = imageBase64.split(',')[1];
     const mimeType = imageBase64.split(';')[0].split(':')[1];
     
-    // 過去の会話履歴をフォーマット
-    const formattedHistory = chatHistory.map(msg => ({
-      role: msg.role === 'ai' ? 'model' : 'user',
-      parts: [
-        { text: msg.type === 'image' ? '[写真が送信されました]' : msg.text }
-      ]
-    }));
+    const formattedHistory = formatHistory(chatHistory);
 
     // Multi-modalリクエストの内容を構成
     const userContent = {
@@ -68,7 +108,12 @@ export const evaluateReport = async (apiKey, modelName = 'gemini-2.5-flash', sys
       ]
     };
 
-    const contents = [...formattedHistory, userContent];
+    const contents = [...formattedHistory];
+    if (contents.length > 0 && contents[contents.length - 1].role === 'user') {
+      contents[contents.length - 1].parts.push(...userContent.parts);
+    } else {
+      contents.push(userContent);
+    }
 
     const response = await ai.models.generateContent({
       model: modelName,

@@ -11,8 +11,10 @@ export default function SettingsPath({
     avatarAngry, setAvatarAngry,
     avatarJoy, setAvatarJoy,
     avatarDisgust, setAvatarDisgust,
+    basePrompt, setBasePrompt,
     prompt1, setPrompt1,
     prompt2, setPrompt2,
+    prompt3, setPrompt3,
     destinationList, setDestinationList,
     onSave
 }) {
@@ -140,10 +142,27 @@ export default function SettingsPath({
                         </div>
                     </div>
 
+                    {/* Base Prompt */}
+                    <div className="space-y-1">
+                        <div className="flex justify-between items-end">
+                            <label htmlFor="basePrompt" className="block text-sm font-semibold text-earth-800">共通キャラクター設定</label>
+                            <button type="button" onClick={() => setBasePrompt(APP_CONFIG.baseCharacterPrompt)} className="text-xs text-blue-600 underline">デフォルトに戻す</button>
+                        </div>
+                        <textarea
+                            id="basePrompt"
+                            name="basePrompt"
+                            value={basePrompt}
+                            onChange={(e) => setBasePrompt(e.target.value)}
+                            rows={8}
+                            className="w-full px-4 py-2 bg-earth-100 border border-earth-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-earth-800 transition-shadow text-sm"
+                            required
+                        />
+                    </div>
+
                     {/* Prompt 1 */}
                     <div className="space-y-1">
                         <div className="flex justify-between items-end">
-                            <label htmlFor="prompt1" className="block text-sm font-semibold text-earth-800">ミッション生成キャラクター設定</label>
+                            <label htmlFor="prompt1" className="block text-sm font-semibold text-earth-800">ミッション生成ルール (Role 1)</label>
                             <button type="button" onClick={() => setPrompt1(APP_CONFIG.defaultPrompt1)} className="text-xs text-blue-600 underline">デフォルトに戻す</button>
                         </div>
                         <textarea
@@ -160,7 +179,7 @@ export default function SettingsPath({
                     {/* Prompt 2 */}
                     <div className="space-y-1">
                         <div className="flex justify-between items-end">
-                            <label htmlFor="prompt2" className="block text-sm font-semibold text-earth-800">写真判定キャラクター設定</label>
+                            <label htmlFor="prompt2" className="block text-sm font-semibold text-earth-800">写真判定ルール (Role 2)</label>
                             <button type="button" onClick={() => setPrompt2(APP_CONFIG.defaultPrompt2)} className="text-xs text-blue-600 underline">デフォルトに戻す</button>
                         </div>
                         <textarea
@@ -168,6 +187,23 @@ export default function SettingsPath({
                             name="prompt2"
                             value={prompt2}
                             onChange={(e) => setPrompt2(e.target.value)}
+                            rows={4}
+                            className="w-full px-4 py-2 bg-earth-100 border border-earth-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-earth-800 transition-shadow text-sm"
+                            required
+                        />
+                    </div>
+
+                    {/* Prompt 3 */}
+                    <div className="space-y-1">
+                        <div className="flex justify-between items-end">
+                            <label htmlFor="prompt3" className="block text-sm font-semibold text-earth-800">オペレータ対応ルール (Role 3)</label>
+                            <button type="button" onClick={() => setPrompt3(APP_CONFIG.defaultPrompt3)} className="text-xs text-blue-600 underline">デフォルトに戻す</button>
+                        </div>
+                        <textarea
+                            id="prompt3"
+                            name="prompt3"
+                            value={prompt3}
+                            onChange={(e) => setPrompt3(e.target.value)}
                             rows={4}
                             className="w-full px-4 py-2 bg-earth-100 border border-earth-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-earth-800 transition-shadow text-sm"
                             required

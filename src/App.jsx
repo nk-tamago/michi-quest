@@ -22,8 +22,10 @@ export default function App() {
   const [avatarJoy, setAvatarJoy] = useLocalStorage('aiAvatarJoy', '');
   const [avatarDisgust, setAvatarDisgust] = useLocalStorage('aiAvatarDisgust', '');
 
+  const [basePrompt, setBasePrompt] = useLocalStorage('aiBasePrompt', APP_CONFIG.baseCharacterPrompt);
   const [prompt1, setPrompt1] = useLocalStorage('aiPrompt1', APP_CONFIG.defaultPrompt1);
   const [prompt2, setPrompt2] = useLocalStorage('aiPrompt2', APP_CONFIG.defaultPrompt2);
+  const [prompt3, setPrompt3] = useLocalStorage('aiPrompt3', APP_CONFIG.defaultPrompt3);
 
   // 目的地リスト（ハルシネーション対策）
   const [destinationList, setDestinationList] = useLocalStorage('destinationList', APP_CONFIG.defaultDestinationList);
@@ -71,7 +73,7 @@ export default function App() {
 
   // 地図用の状態
   const [userLocation, setUserLocation] = useState(null); // [lat, lng]
-  const [mapCenter, setMapCenter] = useState([35.681236, 139.767125]); // default: Tokyo Station
+  const [mapCenter] = useState([35.681236, 139.767125]); // default: Tokyo Station
 
   // 現在位置の監視開始
   useEffect(() => {
@@ -257,8 +259,10 @@ export default function App() {
                 avatarAngry={avatarAngry} setAvatarAngry={setAvatarAngry}
                 avatarJoy={avatarJoy} setAvatarJoy={setAvatarJoy}
                 avatarDisgust={avatarDisgust} setAvatarDisgust={setAvatarDisgust}
+                basePrompt={basePrompt} setBasePrompt={setBasePrompt}
                 prompt1={prompt1} setPrompt1={setPrompt1}
                 prompt2={prompt2} setPrompt2={setPrompt2}
+                prompt3={prompt3} setPrompt3={setPrompt3}
                 destinationList={destinationList} setDestinationList={setDestinationList}
                 onSave={handleSettingsSave}
               />
@@ -282,8 +286,10 @@ export default function App() {
                 avatarAngry={avatarAngry}
                 avatarJoy={avatarJoy}
                 avatarDisgust={avatarDisgust}
+                basePrompt={basePrompt}
                 prompt1={prompt1}
                 prompt2={prompt2}
+                prompt3={prompt3}
                 destinationList={destinationList}
                 chatHistory={chatHistory}
                 setChatHistory={handleUpdateChatHistory}

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import ChatBubble from '../components/ChatBubble';
 import Button from '../components/Button';
 import { Camera, Send, Loader2, Map as MapIcon, RefreshCcw, Award } from 'lucide-react';
-import { generateMission, evaluateReport, verifyLocationExists } from '../utils/api';
+import { generateMission, evaluateReport, verifyLocationExists, chatWithOperator } from '../utils/api';
 import { resizeImage } from '../utils/imageUtils';
 import { getGPSFromImage } from '../utils/exifUtils';
 import { APP_CONFIG } from '../config';
@@ -14,8 +14,10 @@ export default function ChatThread({
     avatarAngry,
     avatarJoy,
     avatarDisgust,
+    basePrompt,
     prompt1,
     prompt2,
+    prompt3,
     destinationList,
     chatHistory,
     setChatHistory,
@@ -47,11 +49,12 @@ export default function ChatThread({
         const currentInput = inputText || '今日のミッションちょうだい！';
         const userMsg = { id: Date.now(), role: 'user', type: 'text', text: currentInput };
         setChatHistory(prev => [...prev, userMsg]);
+        const savedInput = inputText;
         setInputText('');
 
         try {
             // ハルシネーション対策: 目的地リストがあればプロンプトに結合する
-            let finalPrompt = prompt1;
+            let finalPrompt = basePrompt + "\n\n" + prompt1;
             const validDestinations = (destinationList || '').trim();
             if (validDestinations) {
                 finalPrompt += `\n\n【重要】ミッションの目的地は、必ず以下のリストの中から実在するものを1つだけ選んでください。\n${validDestinations}`;
@@ -63,8 +66,13 @@ export default function ChatThread({
             let isValid = false;
 
             for (let i = 0; i < maxRetries; i++) {
-                // パラメータ: apiKey, aiModel, systemInstruction, chatHistory, newText
-                missionText = await generateMission(apiKey, aiModel, finalPrompt, currentHistory, i === 0 ? currentInput : "その場所は実在しません。実在する別の場所を再生成してください。");
+                // Rate limit (HTTP 429) エラー回避のため、2回目以降は少し待つ
+                if (i > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+
+                // 生成。文脈にはエラー状況を含めず、常にフラットな「ミッションちょうだい」要求としてリトライ
+                missionText = await generateMission(apiKey, aiModel, finalPrompt, currentHistory, currentInput);
 
                 // AREAタグからnameを抽出
                 const areaMatch = missionText.match(/\[AREA:\s*({[\s\S]*?})\]/);
@@ -79,25 +87,17 @@ export default function ChatThread({
                                 break;
                             } else {
                                 console.log(`Retry ${i + 1}: Location ${areaData.name} not found.`);
-                                // AIが生成したテキストを文脈に追加して、「それは実在しない」とフィードバックする
-                                currentHistory = [
-                                    ...currentHistory,
-                                    { id: Date.now() + Math.random(), role: 'user', type: 'text', text: i === 0 ? currentInput : "その場所は実在しません。実在する別の場所を再生成してください。" },
-                                    { id: Date.now() + Math.random(), role: 'ai', type: 'text', text: missionText }
-                                ];
+                                // 文脈（currentHistory）は汚さずに、そのまま次のループで再生成する
                             }
                         } else {
-                            // 名前がない場合は判定できないので通す
                             isValid = true;
                             break;
                         }
-                    } catch (e) {
-                        // パース失敗時も強制的に通す
+                    } catch {
                         isValid = true;
                         break;
                     }
                 } else {
-                    // AREAタグが含まれない（目的地指定なし）のポエムミッションなども通す
                     isValid = true;
                     break;
                 }
@@ -105,6 +105,7 @@ export default function ChatThread({
 
             if (!isValid) {
                 console.warn("Max retries reached. Using the last generated mission.");
+                // リトライ上限に達した場合でも、取得できた最後のミッションは採用する
             }
 
             const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'text', text: missionText };
@@ -114,6 +115,7 @@ export default function ChatThread({
             setError(err.message || "通信エラーが発生しました");
             // Remove the user message if it failed
             setChatHistory(prev => prev.filter(msg => msg.id !== userMsg.id));
+            setInputText(savedInput);
         } finally {
             setLoading(false);
         }
@@ -164,6 +166,11 @@ export default function ChatThread({
             image: imageBase64,
             location: imageLocation
         };
+        const savedInputText = inputText;
+        const savedImagePreview = imagePreview;
+        const savedImageBase64 = imageBase64;
+        const savedImageLocation = imageLocation;
+
         setChatHistory(prev => [...prev, userMsg]);
 
         setInputText('');
@@ -171,7 +178,8 @@ export default function ChatThread({
 
         try {
             // パラメータ: apiKey, aiModel, systemInstruction, missionText, imageBase64, chatHistory, newText
-            const resultText = await evaluateReport(apiKey, aiModel, prompt2, currentMission || "ミッション不明", imageBase64, chatHistory, currentInput);
+            const finalPrompt = basePrompt + "\n\n" + prompt2;
+            const resultText = await evaluateReport(apiKey, aiModel, finalPrompt, currentMission || "ミッション不明", imageBase64, chatHistory, currentInput);
 
             // SCOREタグのパース
             let displayMsg = resultText;
@@ -235,6 +243,36 @@ export default function ChatThread({
             setError(err.message || "予期せぬエラーが発生しました");
             // Remove user msg on fail
             setChatHistory(prev => prev.filter(msg => msg.id !== userMsg.id));
+            setInputText(savedInputText);
+            setImagePreview(savedImagePreview);
+            setImageBase64(savedImageBase64);
+            setImageLocation(savedImageLocation);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleOperatorChat = async () => {
+        if (!apiKey) return;
+        setLoading(true);
+        setError('');
+
+        const currentInput = inputText || '進捗どう？';
+        const userMsg = { id: Date.now(), role: 'user', type: 'text', text: currentInput };
+        const savedInput = inputText;
+        setChatHistory(prev => [...prev, userMsg]);
+        setInputText('');
+
+        try {
+            const finalPrompt = basePrompt + "\n\n" + prompt3;
+            const replyText = await chatWithOperator(apiKey, aiModel, finalPrompt, chatHistory, currentInput);
+
+            const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'text', text: replyText };
+            setChatHistory(prev => [...prev, aiMsg]);
+        } catch (err) {
+            setError(err.message || "通信エラーが発生しました");
+            setChatHistory(prev => prev.filter(msg => msg.id !== userMsg.id));
+            setInputText(savedInput);
         } finally {
             setLoading(false);
         }
@@ -245,7 +283,11 @@ export default function ChatThread({
         if (imageBase64) {
             handleReportMission();
         } else if (inputText.trim()) {
-            handleRequestMission();
+            if (currentMission) {
+                handleOperatorChat();
+            } else {
+                handleRequestMission();
+            }
         } else if (!currentMission) {
             handleRequestMission();
         }
@@ -279,13 +321,21 @@ export default function ChatThread({
                                 </div>
                             ) : (
                                 <>
-                                    {msg.type === 'image' && msg.image ? (
+                                    {msg.type === 'image' && (
                                         <div className={`flex w-full mb-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                            <div className="max-w-xs md:max-w-md rounded-xl overflow-hidden shadow-sm border border-earth-300">
-                                                <img src={msg.image} alt="ユーザー報告写真" className="w-full object-cover" width={400} height={300} />
+                                            <div className="max-w-xs md:max-w-md rounded-xl overflow-hidden shadow-sm border border-earth-300 bg-earth-200">
+                                                {msg.image ? (
+                                                    <img src={msg.image} alt="ユーザー報告写真" className="w-full object-cover" width={400} height={300} />
+                                                ) : (
+                                                    <div className="px-6 py-4 flex flex-col items-center justify-center text-earth-600">
+                                                        <Camera size={32} className="mb-2 opacity-50" />
+                                                        <span className="text-sm font-bold opacity-75">送信済み写真</span>
+                                                        <span className="text-xs opacity-50">（容量節約のため非表示）</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
-                                    ) : null}
+                                    )}
                                     <ChatBubble
                                         message={msg.text}
                                         avatarUrl={msg.role === 'ai' ? avatarData : null}
