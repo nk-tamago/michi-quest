@@ -69,6 +69,9 @@ export default function App() {
   // サイドバーの開閉状態
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // リプレイモードのステート
+  const [isReplayMode, setIsReplayMode] = useState(false);
+
 
 
   // 地図用の状態
@@ -245,6 +248,12 @@ export default function App() {
           onSelectSession={(id) => setCurrentSessionId(id)}
           onNewSession={handleNewSession}
           onDeleteSession={handleDeleteSession}
+          onStartReplay={(id) => {
+            setCurrentSessionId(id);
+            setIsReplayMode(true);
+            setCurrentTab('chat');
+            setIsSidebarOpen(false);
+          }}
           totalScore={totalScore}
           titlesCollection={titlesCollection}
         />
@@ -297,6 +306,8 @@ export default function App() {
                 setCurrentMission={handleUpdateCurrentMission}
                 onScoreAdded={(score) => setTotalScore(prev => prev + score)}
                 onTitleAdded={(newTitleData) => setTitlesCollection(prev => [newTitleData, ...prev])}
+                isReplayMode={isReplayMode}
+                onExitReplay={() => setIsReplayMode(false)}
               />
             )
           )}

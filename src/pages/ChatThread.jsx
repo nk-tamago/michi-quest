@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ChatBubble from '../components/ChatBubble';
 import Button from '../components/Button';
-import { Camera, Send, Loader2, Map as MapIcon, RefreshCcw, Award } from 'lucide-react';
+import { Camera, Send, Loader2, Map as MapIcon, RefreshCcw, Award, Play, Pause, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { generateMission, evaluateReport, verifyLocationExists, chatWithOperator } from '../utils/api';
 import { resizeImage } from '../utils/imageUtils';
 import { getGPSFromImage } from '../utils/exifUtils';
@@ -24,7 +24,9 @@ export default function ChatThread({
     currentMission,
     setCurrentMission,
     onScoreAdded,
-    onTitleAdded
+    onTitleAdded,
+    isReplayMode = false,
+    onExitReplay
 }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -36,10 +38,56 @@ export default function ChatThread({
     const fileInputRef = useRef(null);
     const chatEndRef = useRef(null);
 
-    // Auto-scroll to bottom when chat updates
+    // リプレイ用ステート
+    const [replayIndex, setReplayIndex] = useState(0);
+    const [isPlaying, setIsPlaying] = useState(false);
+
+    // モード切り替え時にリプレイを初期化
+    useEffect(() => {
+        if (isReplayMode) {
+            setReplayIndex(0);
+            setIsPlaying(false);
+        }
+    }, [isReplayMode, currentMission]);
+
+    // 表示用の履歴配列（リプレイモード時はスライスする）
+    const displayedHistory = isReplayMode ? chatHistory.slice(0, replayIndex + 1) : chatHistory;
+
+    // 自動再生タイマー
+    useEffect(() => {
+        let timer;
+        if (isReplayMode && isPlaying && replayIndex < chatHistory.length - 1) {
+            timer = setTimeout(() => {
+                setReplayIndex(prev => prev + 1);
+            }, 2500); // 2.5秒間隔
+        } else if (replayIndex >= chatHistory.length - 1) {
+            setIsPlaying(false);
+        }
+        return () => clearTimeout(timer);
+    }, [isReplayMode, isPlaying, replayIndex, chatHistory.length]);
+
+    // キーボード操作（← → Space）
+    useEffect(() => {
+        if (!isReplayMode) return;
+        const handleReplayKey = (e) => {
+            if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+            if (e.key === 'ArrowRight') {
+                setReplayIndex(prev => Math.min(prev + 1, chatHistory.length - 1));
+            } else if (e.key === 'ArrowLeft') {
+                setReplayIndex(prev => Math.max(prev - 0, 0) - 1);
+            } else if (e.key === ' ') {
+                e.preventDefault();
+                setIsPlaying(prev => !prev);
+            }
+        };
+        window.addEventListener('keydown', handleReplayKey);
+        return () => window.removeEventListener('keydown', handleReplayKey);
+    }, [isReplayMode, chatHistory.length]);
+
+    // Auto-scroll to bottom when chat updates or replay advances
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [chatHistory, loading]);
+    }, [displayedHistory.length, loading, isReplayMode]);
 
     const handleRequestMission = async () => {
         if (!apiKey) return;
@@ -303,14 +351,14 @@ export default function ChatThread({
         <div className="flex flex-col h-full relative">
             {/* Chat Timeline Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-32">
-                {chatHistory.length === 0 ? (
+                {displayedHistory.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-earth-500 opacity-50">
                         <MapIcon size={64} className="mb-4" />
                         <p>まだ会話がありません。</p>
                         <p>下のボタンからミッションを要求してみましょう。</p>
                     </div>
                 ) : (
-                    chatHistory.map((msg) => (
+                    displayedHistory.map((msg) => (
                         <div key={msg.id} className="w-full">
                             {msg.role === 'system' ? (
                                 <div className="flex justify-center my-4">
@@ -369,65 +417,87 @@ export default function ChatThread({
                 <div ref={chatEndRef} />
             </div>
 
-            {/* Input Area (Bottom Sticky) */}
+            {/* Input Area (Bottom Sticky - Switches with Replay Controls) */}
             <div className="absolute bottom-0 left-0 right-0 bg-earth-100 border-t border-earth-300 p-2 sm:p-4 shadow-lg">
                 <div className="max-w-3xl mx-auto">
-                    {imagePreview ? (
-                        <div className="relative inline-block mb-3">
-                            <img src={imagePreview} alt="Preview" className="h-24 w-24 object-cover rounded-lg border-2 border-earth-400 shadow-sm" />
-                            <button
-                                onClick={handleClearImage}
-                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
-                                aria-label="画像をクリア"
-                            >
-                                <RefreshCcw size={14} />
+                    {isReplayMode ? (
+                        <div className="flex items-center justify-between bg-earth-800 text-white rounded-xl shadow-inner px-2 py-2 sm:px-4 sm:py-3 border-2 border-earth-900">
+                            <div className="flex items-center gap-1 sm:gap-2">
+                                <button onClick={() => setIsPlaying(!isPlaying)} className="p-2 sm:p-3 hover:bg-earth-700 rounded-full transition-colors border border-earth-700 bg-earth-900" title="自動再生 (Space)">
+                                    {isPlaying ? <Pause size={24} className="text-yellow-400" /> : <Play size={24} className="text-green-400" />}
+                                </button>
+                                <div className="w-px h-8 bg-earth-700 mx-1 sm:mx-2"></div>
+                                <button onClick={() => setReplayIndex(prev => Math.max(prev - 1, 0))} disabled={replayIndex === 0} className="p-2 sm:p-3 hover:bg-earth-700 rounded-full disabled:opacity-30 transition-colors" title="前へ (←)"><ChevronLeft size={24} /></button>
+                                <button onClick={() => setReplayIndex(prev => Math.min(prev + 1, chatHistory.length - 1))} disabled={replayIndex === chatHistory.length - 1} className="p-2 sm:p-3 hover:bg-earth-700 rounded-full disabled:opacity-30 transition-colors" title="次へ (→)"><ChevronRight size={24} /></button>
+                            </div>
+
+                            <div className="text-sm sm:text-base font-mono font-bold text-earth-300 px-3 py-1.5 bg-earth-900 rounded-lg shadow-inner">
+                                {replayIndex + 1} <span className="opacity-50">/</span> {Math.max(1, chatHistory.length)}
+                            </div>
+
+                            <button onClick={() => { onExitReplay && onExitReplay(); setIsPlaying(false); }} className="p-2 sm:px-4 sm:py-2 flex items-center gap-1 sm:gap-2 bg-red-900/40 hover:bg-red-600 hover:text-white rounded-lg text-red-300 transition-colors font-bold border border-red-900/50" title="リプレイ終了">
+                                <span className="hidden sm:inline">終了</span><X size={20} />
                             </button>
                         </div>
-                    ) : null}
+                    ) : (
+                        <>
+                            {imagePreview ? (
+                                <div className="relative inline-block mb-3">
+                                    <img src={imagePreview} alt="Preview" className="h-24 w-24 object-cover rounded-lg border-2 border-earth-400 shadow-sm" />
+                                    <button
+                                        onClick={handleClearImage}
+                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
+                                        aria-label="画像をクリア"
+                                    >
+                                        <RefreshCcw size={14} />
+                                    </button>
+                                </div>
+                            ) : null}
 
-                    <div className="flex gap-2">
-                        {/* Hidden File Input */}
-                        <input
-                            type="file"
-                            accept="image/*"
-                            capture="environment"
-                            ref={fileInputRef}
-                            onChange={handleImageUpload}
-                            className="hidden"
-                        />
+                            <div className="flex gap-2">
+                                {/* Hidden File Input */}
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    capture="environment"
+                                    ref={fileInputRef}
+                                    onChange={handleImageUpload}
+                                    className="hidden"
+                                />
 
-                        {/* Upload Button */}
-                        <button
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={loading || isProcessingImage}
-                            className="p-3 md:p-4 bg-earth-200 text-earth-700 rounded-xl border-2 border-earth-300 hover:bg-earth-300 transition-colors disabled:opacity-50"
-                            title="写真を添付"
-                            aria-label="写真を添付"
-                        >
-                            {isProcessingImage ? <Loader2 className="animate-spin" size={24} /> : <Camera size={24} />}
-                        </button>
+                                {/* Upload Button */}
+                                <button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={loading || isProcessingImage}
+                                    className="p-3 md:p-4 bg-earth-200 text-earth-700 rounded-xl border-2 border-earth-300 hover:bg-earth-300 transition-colors disabled:opacity-50"
+                                    title="写真を添付"
+                                    aria-label="写真を添付"
+                                >
+                                    {isProcessingImage ? <Loader2 className="animate-spin" size={24} /> : <Camera size={24} />}
+                                </button>
 
-                        {/* Text Input */}
-                        <textarea
-                            value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            disabled={loading || isProcessingImage}
-                            placeholder={!currentMission ? "ミッションを要求する..." : "何かメッセージを送る (Ctrl+Enterで送信)"}
-                            className="flex-1 px-4 py-3 bg-white border border-earth-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-earth-800 resize-none overflow-hidden min-h-[50px] max-h-[120px]"
-                            rows="1"
-                        />
+                                {/* Text Input */}
+                                <textarea
+                                    value={inputText}
+                                    onChange={(e) => setInputText(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    disabled={loading || isProcessingImage}
+                                    placeholder={!currentMission ? "ミッションを要求する..." : "何かメッセージを送る (Ctrl+Enterで送信)"}
+                                    className="flex-1 px-4 py-3 bg-white border border-earth-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-earth-800 resize-none overflow-hidden min-h-[50px] max-h-[120px]"
+                                    rows="1"
+                                />
 
-                        {/* Send Button */}
-                        <button
-                            onClick={handleSend}
-                            disabled={loading || isProcessingImage || (!inputText.trim() && !imageBase64 && currentMission)}
-                            className="p-3 md:p-4 bg-earth-800 text-earth-100 rounded-xl hover:bg-earth-900 transition-colors disabled:opacity-50 flex items-center justify-center shrink-0"
-                            aria-label="送信"
-                        >
-                            {loading ? <Loader2 className="animate-spin" size={24} /> : <Send size={24} />}
-                        </button>
-                    </div>
+                                <button
+                                    onClick={handleSend}
+                                    disabled={loading || isProcessingImage || (!inputText.trim() && !imageBase64 && currentMission)}
+                                    className="p-3 md:p-4 bg-earth-800 text-earth-100 rounded-xl hover:bg-earth-900 transition-colors disabled:opacity-50 flex items-center justify-center shrink-0"
+                                    aria-label="送信"
+                                >
+                                    {loading ? <Loader2 className="animate-spin" size={24} /> : <Send size={24} />}
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

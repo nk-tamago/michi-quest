@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Plus, MessageSquare, Trash2, Award } from 'lucide-react';
+import { X, Plus, MessageSquare, Trash2, Award, Play } from 'lucide-react';
 
 const getRank = (score) => {
     if (score < 100) return "★";
@@ -17,6 +17,7 @@ export default function Sidebar({
     onSelectSession,
     onNewSession,
     onDeleteSession,
+    onStartReplay,
     totalScore = 0,
     titlesCollection = []
 }) {
@@ -98,19 +99,32 @@ export default function Sidebar({
                                         <div className="text-xs opacity-60">{new Intl.DateTimeFormat('ja-JP').format(new Date(session.id))}</div>
                                     </div>
                                 </button>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (confirm('この履歴を削除しますか？')) {
-                                            onDeleteSession(session.id);
-                                        }
-                                    }}
-                                    className="p-1.5 opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-earth-900 rounded-md transition-[opacity,color,background-color] flex-shrink-0"
-                                    title="削除"
-                                    aria-label="履歴を削除"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (onStartReplay) onStartReplay(session.id);
+                                        }}
+                                        className="p-1.5 hover:text-green-400 hover:bg-earth-900 rounded-md transition-[color,background-color] flex-shrink-0"
+                                        title="録画リプレイを開始"
+                                        aria-label="リプレイ"
+                                    >
+                                        <Play size={16} />
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (confirm('この履歴を削除しますか？')) {
+                                                onDeleteSession(session.id);
+                                            }
+                                        }}
+                                        className="p-1.5 hover:text-red-400 hover:bg-earth-900 rounded-md transition-[color,background-color] flex-shrink-0"
+                                        title="削除"
+                                        aria-label="履歴を削除"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
                             </div>
                         ))
                     )}
