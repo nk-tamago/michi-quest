@@ -1,8 +1,9 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import Button from '../components/Button';
 import { Settings as SettingsIcon, ImagePlus, Save } from 'lucide-react';
 import { resizeImage } from '../utils/imageUtils';
 import { APP_CONFIG } from '../config';
+import ImageCropper from '../components/ImageCropper';
 
 export default function SettingsPath({
     apiKey, setApiKey,
@@ -24,18 +25,49 @@ export default function SettingsPath({
     const joyInputRef = useRef(null);
     const disgustInputRef = useRef(null);
 
-    const handleImageUpload = async (e, setter) => {
+    // 画像クロップ用ステート
+    const [isCropping, setIsCropping] = useState(false);
+    const [cropImageUrl, setCropImageUrl] = useState(null);
+    const [currentSetter, setCurrentSetter] = useState(null);
+
+    const handleImageUpload = (e, setter) => {
         const file = e.target.files[0];
         if (!file) return;
 
         try {
-            // アバター画像なので小さめ(256px)にリサイズして保存容量を節約
-            const resizedBase64 = await resizeImage(file, 256);
-            setter(resizedBase64);
+            // ファイルをURLとして読み込み、クロップモーダルへ渡す
+            const imageUrl = URL.createObjectURL(file);
+            setCropImageUrl(imageUrl);
+            setCurrentSetter(() => setter);
+            setIsCropping(true);
         } catch (err) {
-            console.error("画像リサイズエラー:", err);
-            alert("画像の処理に失敗しました。");
+            console.error("画像読み込みエラー:", err);
+            alert("画像の読み込みに失敗しました。");
         }
+        // Inputをリセット（同じファイルを再度選べるように）
+        e.target.value = '';
+    };
+
+    const handleAdjustImage = (currentImageSource, setter) => {
+        if (!currentImageSource) return;
+        setCropImageUrl(currentImageSource);
+        setCurrentSetter(() => setter);
+        setIsCropping(true);
+    };
+
+    const handleCropComplete = (croppedBase64) => {
+        if (currentSetter) {
+            currentSetter(croppedBase64);
+        }
+        setIsCropping(false);
+        setCropImageUrl(null);
+        setCurrentSetter(null);
+    };
+
+    const handleCropCancel = () => {
+        setIsCropping(false);
+        setCropImageUrl(null);
+        setCurrentSetter(null);
     };
 
     const handleSave = (e) => {
@@ -106,7 +138,10 @@ export default function SettingsPath({
                                         )}
                                     </div>
                                     <input type="file" accept="image/*" ref={defaultInputRef} onChange={(e) => handleImageUpload(e, setAvatarData)} className="hidden" />
-                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); defaultInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">画像を変更</Button>
+                                    <div className="flex gap-1.5 w-full">
+                                        <Button variant="secondary" onClick={(e) => { e.preventDefault(); handleAdjustImage(avatarData || APP_CONFIG.defaultAvatarNormal, setAvatarData); }} className="flex-1 text-xs py-1 px-1">画像を調整</Button>
+                                        <Button variant="secondary" onClick={(e) => { e.preventDefault(); defaultInputRef.current?.click(); }} className="flex-1 text-xs py-1 px-1">画像を変更</Button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -123,7 +158,10 @@ export default function SettingsPath({
                                         )}
                                     </div>
                                     <input type="file" accept="image/*" ref={angryInputRef} onChange={(e) => handleImageUpload(e, setAvatarAngry)} className="hidden" />
-                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); angryInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">画像を変更</Button>
+                                    <div className="flex gap-1.5 w-full">
+                                        <Button variant="secondary" onClick={(e) => { e.preventDefault(); handleAdjustImage(avatarAngry || APP_CONFIG.defaultAvatarAngry, setAvatarAngry); }} className="flex-1 text-xs py-1 px-1">画像を調整</Button>
+                                        <Button variant="secondary" onClick={(e) => { e.preventDefault(); angryInputRef.current?.click(); }} className="flex-1 text-xs py-1 px-1">画像を変更</Button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -140,7 +178,10 @@ export default function SettingsPath({
                                         )}
                                     </div>
                                     <input type="file" accept="image/*" ref={joyInputRef} onChange={(e) => handleImageUpload(e, setAvatarJoy)} className="hidden" />
-                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); joyInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">画像を変更</Button>
+                                    <div className="flex gap-1.5 w-full">
+                                        <Button variant="secondary" onClick={(e) => { e.preventDefault(); handleAdjustImage(avatarJoy || APP_CONFIG.defaultAvatarJoy, setAvatarJoy); }} className="flex-1 text-xs py-1 px-1">画像を調整</Button>
+                                        <Button variant="secondary" onClick={(e) => { e.preventDefault(); joyInputRef.current?.click(); }} className="flex-1 text-xs py-1 px-1">画像を変更</Button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -157,7 +198,10 @@ export default function SettingsPath({
                                         )}
                                     </div>
                                     <input type="file" accept="image/*" ref={disgustInputRef} onChange={(e) => handleImageUpload(e, setAvatarDisgust)} className="hidden" />
-                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); disgustInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">画像を変更</Button>
+                                    <div className="flex gap-1.5 w-full">
+                                        <Button variant="secondary" onClick={(e) => { e.preventDefault(); handleAdjustImage(avatarDisgust || APP_CONFIG.defaultAvatarDisgust, setAvatarDisgust); }} className="flex-1 text-xs py-1 px-1">画像を調整</Button>
+                                        <Button variant="secondary" onClick={(e) => { e.preventDefault(); disgustInputRef.current?.click(); }} className="flex-1 text-xs py-1 px-1">画像を変更</Button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -275,6 +319,15 @@ export default function SettingsPath({
                     </button>
                 </div>
             </div>
+
+            {/* クロップ用モーダル */}
+            {isCropping && cropImageUrl && (
+                <ImageCropper
+                    imageSrc={cropImageUrl}
+                    onCropComplete={handleCropComplete}
+                    onCancel={handleCropCancel}
+                />
+            )}
         </div>
     );
 }
