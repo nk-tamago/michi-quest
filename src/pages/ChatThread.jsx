@@ -273,8 +273,8 @@ export default function ChatThread({
             const titleMatch = resultText.match(/\[TITLE:\s*(.*?)\]/i);
             if (titleMatch) {
                 const newTitle = titleMatch[1].trim();
-                // 0点時の "なし" などを弾く
-                if (newTitle && newTitle !== 'なし' && newTitle !== '無し' && newTitle !== 'None' && onTitleAdded) {
+                // 60点未満の失敗時、または "なし" 指定の場合は称号を付与しない
+                if (earnedScore >= 60 && newTitle && newTitle !== 'なし' && newTitle !== '無し' && newTitle !== 'None' && onTitleAdded) {
                     onTitleAdded({
                         title: newTitle,
                         date: new Date().toISOString(),
@@ -287,7 +287,7 @@ export default function ChatThread({
             }
 
             // クリア判定と演出のトリガー
-            if (earnedScore !== null && earnedScore > 0) {
+            if (earnedScore !== null && earnedScore >= 60) {
                 if (onMissionCleared) onMissionCleared();
                 if (!isReplayMode) {
                     setClearedTitle(earnedTitle);
