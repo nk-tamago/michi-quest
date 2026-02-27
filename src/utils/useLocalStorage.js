@@ -28,7 +28,24 @@ export function useLocalStorage(key, initialValue) {
         // Allow value to be a function so we have same API as useState
         const valueToStore = value instanceof Function ? value(prevValue) : value;
         if (typeof window !== 'undefined') {
-          window.localStorage.setItem(key, JSON.stringify(valueToStore));
+          try {
+            window.localStorage.setItem(key, JSON.stringify(valueToStore));
+          } catch (err) {
+            if ((err.name === 'QuotaExceededError' || err.code === 22 || err.code === 1014) && key === 'chatSessions') {
+              console.warn("localStorage quota exceeded! Stripping image base64 data to save space.");
+              const strippedValue = valueToStore.map(session => ({
+                ...session,
+                history: session.history.map(msg => msg.type === 'image' && msg.image ? { ...msg, image: null } : msg)
+              }));
+              try {
+                window.localStorage.setItem(key, JSON.stringify(strippedValue));
+              } catch (fallbackErr) {
+                console.error("Even after stripping images, localStorage is full.", fallbackErr);
+              }
+            } else {
+              throw err;
+            }
+          }
         }
         return valueToStore;
       } catch (error) {

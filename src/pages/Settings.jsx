@@ -11,10 +11,13 @@ export default function SettingsPath({
     avatarAngry, setAvatarAngry,
     avatarJoy, setAvatarJoy,
     avatarDisgust, setAvatarDisgust,
+    basePrompt, setBasePrompt,
     prompt1, setPrompt1,
     prompt2, setPrompt2,
+    prompt3, setPrompt3,
     destinationList, setDestinationList,
-    onSave
+    onSave,
+    onClearData
 }) {
     const defaultInputRef = useRef(null);
     const angryInputRef = useRef(null);
@@ -91,59 +94,96 @@ export default function SettingsPath({
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {/* 通常 */}
-                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200">
+                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200 relative">
                                 <div className="w-12 h-12 rounded-full bg-earth-200 border-2 border-dashed border-earth-300 flex items-center justify-center overflow-hidden flex-shrink-0">
                                     {avatarData ? <img src={avatarData} alt="Normal" className="w-full h-full object-cover" width={48} height={48} /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
                                 </div>
                                 <div className="flex-1">
-                                    <div className="text-xs font-bold text-earth-800 mb-1">通常 (デフォルト)</div>
+                                    <div className="text-xs font-bold text-earth-800 mb-1 flex justify-between items-center">
+                                        <span>通常 (デフォルト)</span>
+                                        {avatarData !== APP_CONFIG.defaultAvatarNormal && (
+                                            <button type="button" onClick={() => setAvatarData(APP_CONFIG.defaultAvatarNormal)} className="text-[10px] text-blue-600 underline">デフォルトに戻す</button>
+                                        )}
+                                    </div>
                                     <input type="file" accept="image/*" ref={defaultInputRef} onChange={(e) => handleImageUpload(e, setAvatarData)} className="hidden" />
-                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); defaultInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">選択</Button>
+                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); defaultInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">画像を変更</Button>
                                 </div>
                             </div>
 
                             {/* 怒り */}
-                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200">
+                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200 relative">
                                 <div className="w-12 h-12 rounded-full bg-earth-200 border-2 border-dashed border-earth-300 flex items-center justify-center overflow-hidden flex-shrink-0">
                                     {avatarAngry ? <img src={avatarAngry} alt="Angry" className="w-full h-full object-cover" width={48} height={48} /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
                                 </div>
                                 <div className="flex-1">
-                                    <div className="text-xs font-bold text-earth-800 mb-1">怒り / 罵倒</div>
+                                    <div className="text-xs font-bold text-earth-800 mb-1 flex justify-between items-center">
+                                        <span>怒り / 罵倒</span>
+                                        {avatarAngry !== APP_CONFIG.defaultAvatarAngry && (
+                                            <button type="button" onClick={() => setAvatarAngry(APP_CONFIG.defaultAvatarAngry)} className="text-[10px] text-blue-600 underline">デフォルトに戻す</button>
+                                        )}
+                                    </div>
                                     <input type="file" accept="image/*" ref={angryInputRef} onChange={(e) => handleImageUpload(e, setAvatarAngry)} className="hidden" />
-                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); angryInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">選択</Button>
+                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); angryInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">画像を変更</Button>
                                 </div>
                             </div>
 
                             {/* 喜び */}
-                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200">
+                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200 relative">
                                 <div className="w-12 h-12 rounded-full bg-earth-200 border-2 border-dashed border-earth-300 flex items-center justify-center overflow-hidden flex-shrink-0">
                                     {avatarJoy ? <img src={avatarJoy} alt="Joy" className="w-full h-full object-cover" width={48} height={48} /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
                                 </div>
                                 <div className="flex-1">
-                                    <div className="text-xs font-bold text-earth-800 mb-1">喜び / 褒める</div>
+                                    <div className="text-xs font-bold text-earth-800 mb-1 flex justify-between items-center">
+                                        <span>喜び / 褒める</span>
+                                        {avatarJoy !== APP_CONFIG.defaultAvatarJoy && (
+                                            <button type="button" onClick={() => setAvatarJoy(APP_CONFIG.defaultAvatarJoy)} className="text-[10px] text-blue-600 underline">デフォルトに戻す</button>
+                                        )}
+                                    </div>
                                     <input type="file" accept="image/*" ref={joyInputRef} onChange={(e) => handleImageUpload(e, setAvatarJoy)} className="hidden" />
-                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); joyInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">選択</Button>
+                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); joyInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">画像を変更</Button>
                                 </div>
                             </div>
 
                             {/* 呆れ */}
-                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200">
+                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200 relative">
                                 <div className="w-12 h-12 rounded-full bg-earth-200 border-2 border-dashed border-earth-300 flex items-center justify-center overflow-hidden flex-shrink-0">
                                     {avatarDisgust ? <img src={avatarDisgust} alt="Disgust" className="w-full h-full object-cover" width={48} height={48} /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
                                 </div>
                                 <div className="flex-1">
-                                    <div className="text-xs font-bold text-earth-800 mb-1">呆れ / ツッコミ</div>
+                                    <div className="text-xs font-bold text-earth-800 mb-1 flex justify-between items-center">
+                                        <span>呆れ / ツッコミ</span>
+                                        {avatarDisgust !== APP_CONFIG.defaultAvatarDisgust && (
+                                            <button type="button" onClick={() => setAvatarDisgust(APP_CONFIG.defaultAvatarDisgust)} className="text-[10px] text-blue-600 underline">デフォルトに戻す</button>
+                                        )}
+                                    </div>
                                     <input type="file" accept="image/*" ref={disgustInputRef} onChange={(e) => handleImageUpload(e, setAvatarDisgust)} className="hidden" />
-                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); disgustInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">選択</Button>
+                                    <Button variant="secondary" onClick={(e) => { e.preventDefault(); disgustInputRef.current?.click(); }} className="w-full text-xs py-1 px-2">画像を変更</Button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
+                    {/* Base Prompt */}
+                    <div className="space-y-1">
+                        <div className="flex justify-between items-end">
+                            <label htmlFor="basePrompt" className="block text-sm font-semibold text-earth-800">共通キャラクター設定</label>
+                            <button type="button" onClick={() => setBasePrompt(APP_CONFIG.baseCharacterPrompt)} className="text-xs text-blue-600 underline">デフォルトに戻す</button>
+                        </div>
+                        <textarea
+                            id="basePrompt"
+                            name="basePrompt"
+                            value={basePrompt}
+                            onChange={(e) => setBasePrompt(e.target.value)}
+                            rows={8}
+                            className="w-full px-4 py-2 bg-earth-100 border border-earth-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-earth-800 transition-shadow text-sm"
+                            required
+                        />
+                    </div>
+
                     {/* Prompt 1 */}
                     <div className="space-y-1">
                         <div className="flex justify-between items-end">
-                            <label htmlFor="prompt1" className="block text-sm font-semibold text-earth-800">ミッション生成キャラクター設定</label>
+                            <label htmlFor="prompt1" className="block text-sm font-semibold text-earth-800">ミッション生成ルール (Role 1)</label>
                             <button type="button" onClick={() => setPrompt1(APP_CONFIG.defaultPrompt1)} className="text-xs text-blue-600 underline">デフォルトに戻す</button>
                         </div>
                         <textarea
@@ -160,7 +200,7 @@ export default function SettingsPath({
                     {/* Prompt 2 */}
                     <div className="space-y-1">
                         <div className="flex justify-between items-end">
-                            <label htmlFor="prompt2" className="block text-sm font-semibold text-earth-800">写真判定キャラクター設定</label>
+                            <label htmlFor="prompt2" className="block text-sm font-semibold text-earth-800">写真判定ルール (Role 2)</label>
                             <button type="button" onClick={() => setPrompt2(APP_CONFIG.defaultPrompt2)} className="text-xs text-blue-600 underline">デフォルトに戻す</button>
                         </div>
                         <textarea
@@ -168,6 +208,23 @@ export default function SettingsPath({
                             name="prompt2"
                             value={prompt2}
                             onChange={(e) => setPrompt2(e.target.value)}
+                            rows={4}
+                            className="w-full px-4 py-2 bg-earth-100 border border-earth-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-earth-800 transition-shadow text-sm"
+                            required
+                        />
+                    </div>
+
+                    {/* Prompt 3 */}
+                    <div className="space-y-1">
+                        <div className="flex justify-between items-end">
+                            <label htmlFor="prompt3" className="block text-sm font-semibold text-earth-800">オペレータ対応ルール (Role 3)</label>
+                            <button type="button" onClick={() => setPrompt3(APP_CONFIG.defaultPrompt3)} className="text-xs text-blue-600 underline">デフォルトに戻す</button>
+                        </div>
+                        <textarea
+                            id="prompt3"
+                            name="prompt3"
+                            value={prompt3}
+                            onChange={(e) => setPrompt3(e.target.value)}
                             rows={4}
                             className="w-full px-4 py-2 bg-earth-100 border border-earth-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-earth-800 transition-shadow text-sm"
                             required
@@ -198,6 +255,25 @@ export default function SettingsPath({
                         </Button>
                     </div>
                 </form>
+            </div>
+
+            {/* Data Management Section */}
+            <div className="bg-white rounded-2xl shadow-sm border border-red-200 p-6 space-y-4">
+                <h3 className="text-lg font-bold text-red-800 border-b border-red-200 pb-2">データ管理 (Danger Zone)</h3>
+                <p className="text-sm text-earth-700">これまで獲得した「称号」と「通算スコア」のデータを初期化します。この操作は取り消せません。</p>
+                <div className="flex justify-start">
+                    <button
+                        type="button"
+                        className="px-4 py-2 bg-red-100 text-red-700 font-bold rounded-lg border border-red-300 hover:bg-red-200 transition-colors"
+                        onClick={() => {
+                            if (window.confirm("本当に称号とスコアデータを初期化しますか？\n（この操作は元に戻せません）")) {
+                                onClearData();
+                            }
+                        }}
+                    >
+                        データを初期化する
+                    </button>
+                </div>
             </div>
         </div>
     );

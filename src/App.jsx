@@ -17,19 +17,24 @@ export default function App() {
   const [aiModel, setAiModel] = useLocalStorage('geminiAiModel', 'gemini-2.5-flash');
 
   // アバター系
-  const [avatarData, setAvatarData] = useLocalStorage('aiAvatarData', '');
-  const [avatarAngry, setAvatarAngry] = useLocalStorage('aiAvatarAngry', '');
-  const [avatarJoy, setAvatarJoy] = useLocalStorage('aiAvatarJoy', '');
-  const [avatarDisgust, setAvatarDisgust] = useLocalStorage('aiAvatarDisgust', '');
+  const [avatarData, setAvatarData] = useLocalStorage('aiAvatarData', APP_CONFIG.defaultAvatarNormal);
+  const [avatarAngry, setAvatarAngry] = useLocalStorage('aiAvatarAngry', APP_CONFIG.defaultAvatarAngry);
+  const [avatarJoy, setAvatarJoy] = useLocalStorage('aiAvatarJoy', APP_CONFIG.defaultAvatarJoy);
+  const [avatarDisgust, setAvatarDisgust] = useLocalStorage('aiAvatarDisgust', APP_CONFIG.defaultAvatarDisgust);
 
+  const [basePrompt, setBasePrompt] = useLocalStorage('aiBasePrompt', APP_CONFIG.baseCharacterPrompt);
   const [prompt1, setPrompt1] = useLocalStorage('aiPrompt1', APP_CONFIG.defaultPrompt1);
   const [prompt2, setPrompt2] = useLocalStorage('aiPrompt2', APP_CONFIG.defaultPrompt2);
+  const [prompt3, setPrompt3] = useLocalStorage('aiPrompt3', APP_CONFIG.defaultPrompt3);
 
   // 目的地リスト（ハルシネーション対策）
   const [destinationList, setDestinationList] = useLocalStorage('destinationList', APP_CONFIG.defaultDestinationList);
 
   // 累計スコア
   const [totalScore, setTotalScore] = useLocalStorage('totalScore', 0);
+
+  // 獲得称号リスト（コレクション）
+  const [titlesCollection, setTitlesCollection] = useLocalStorage('titlesCollection', []); // [{ title: "...", date: "...", ... }]
 
   // セッション管理系
   // 初回ロード時に既存のchatHistory互換性維持等を含めて遅延評価(Lazy Initialization)
@@ -45,7 +50,8 @@ export default function App() {
             id: newId,
             title: firstMission.slice(0, 15) + '...',
             history: oldHistory,
-            currentMission: ''
+            currentMission: '',
+            isCleared: false
           }];
         }
       } catch { /* ignore */ }
@@ -64,11 +70,14 @@ export default function App() {
   // サイドバーの開閉状態
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // リプレイモードのステート
+  const [isReplayMode, setIsReplayMode] = useState(false);
+
 
 
   // 地図用の状態
   const [userLocation, setUserLocation] = useState(null); // [lat, lng]
-  const [mapCenter, setMapCenter] = useState([35.681236, 139.767125]); // default: Tokyo Station
+  const [mapCenter] = useState([35.681236, 139.767125]); // default: Tokyo Station
 
   // 現在位置の監視開始
   useEffect(() => {
@@ -159,9 +168,33 @@ export default function App() {
     }));
   };
 
+  const handleMissionCleared = () => {
+    if (!currentSessionId) return;
+    setSessions(prev => prev.map(s => {
+      if (s.id === currentSessionId) {
+        return { ...s, isCleared: true };
+      }
+      return s;
+    }));
+  };
+
+  const handleClearData = () => {
+    setTotalScore(0);
+    setTitlesCollection([]);
+    alert('過去の称号とスコアデータを初期化しました。');
+  };
+
   const handleNewSession = () => {
     const newId = Date.now();
-    const newSession = { id: newId, title: '', history: [], currentMission: '' };
+    const randomGreeting = APP_CONFIG.greetings[Math.floor(Math.random() * APP_CONFIG.greetings.length)];
+    const initialHistory = [
+      { id: Date.now() + 1, role: 'ai', type: 'text', text: randomGreeting }
+    ];
+
+    // 最初の定型文の最初の一部などをタイトルにする（後でミッション生成時に上書きされる想定）
+    const initialTitle = "ミッション準備中...";
+
+    const newSession = { id: newId, title: initialTitle, history: initialHistory, currentMission: '', isCleared: false };
     setSessions(prev => [newSession, ...prev]);
     setCurrentSessionId(newId);
     setCurrentTab('chat');
@@ -240,7 +273,14 @@ export default function App() {
           onSelectSession={(id) => setCurrentSessionId(id)}
           onNewSession={handleNewSession}
           onDeleteSession={handleDeleteSession}
+          onStartReplay={(id) => {
+            setCurrentSessionId(id);
+            setIsReplayMode(true);
+            setCurrentTab('chat');
+            setIsSidebarOpen(false);
+          }}
           totalScore={totalScore}
+          titlesCollection={titlesCollection}
         />
 
         <main className="flex-1 w-full bg-earth-100 h-full overflow-hidden flex flex-col relative">
@@ -253,10 +293,13 @@ export default function App() {
                 avatarAngry={avatarAngry} setAvatarAngry={setAvatarAngry}
                 avatarJoy={avatarJoy} setAvatarJoy={setAvatarJoy}
                 avatarDisgust={avatarDisgust} setAvatarDisgust={setAvatarDisgust}
+                basePrompt={basePrompt} setBasePrompt={setBasePrompt}
                 prompt1={prompt1} setPrompt1={setPrompt1}
                 prompt2={prompt2} setPrompt2={setPrompt2}
+                prompt3={prompt3} setPrompt3={setPrompt3}
                 destinationList={destinationList} setDestinationList={setDestinationList}
                 onSave={handleSettingsSave}
+                onClearData={handleClearData}
               />
             </div>
           )}
@@ -265,9 +308,9 @@ export default function App() {
             // currentSessionIdがない場合は空画面に近いものを出すか、強制Start
             !currentSessionId ? (
               <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center p-4 text-earth-800">
-                <p className="mb-4">新しいツーリング履歴を作成してください</p>
+                <p className="mb-4">新しいミッション履歴を作成してください</p>
                 <button onClick={handleNewSession} className="px-6 py-3 bg-earth-800 text-white rounded-xl shadow-md font-bold hover:bg-earth-900 transition-colors">
-                  新しいツーリングをはじめる
+                  新しいミッションをはじめる
                 </button>
               </div>
             ) : (
@@ -278,14 +321,21 @@ export default function App() {
                 avatarAngry={avatarAngry}
                 avatarJoy={avatarJoy}
                 avatarDisgust={avatarDisgust}
+                basePrompt={basePrompt}
                 prompt1={prompt1}
                 prompt2={prompt2}
+                prompt3={prompt3}
                 destinationList={destinationList}
                 chatHistory={chatHistory}
                 setChatHistory={handleUpdateChatHistory}
                 currentMission={currentMission}
                 setCurrentMission={handleUpdateCurrentMission}
                 onScoreAdded={(score) => setTotalScore(prev => prev + score)}
+                onTitleAdded={(newTitleData) => setTitlesCollection(prev => [newTitleData, ...prev])}
+                onMissionCleared={handleMissionCleared}
+                isSessionCleared={activeSession?.isCleared}
+                isReplayMode={isReplayMode}
+                onExitReplay={() => setIsReplayMode(false)}
               />
             )
           )}
