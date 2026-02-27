@@ -111,7 +111,7 @@ export default function ChatThread({
         setLoading(true);
         setError('');
 
-        const currentInput = inputText || '新規ミッションを伝えてください';
+        const currentInput = inputText || '新規ミッションを教えてください';
         const userMsg = { id: Date.now(), role: 'user', type: 'text', text: currentInput };
         setChatHistory(prev => [...prev, userMsg]);
         const savedInput = inputText;
@@ -459,8 +459,12 @@ export default function ChatThread({
 
             {/* Clear Animation Overlay */}
             {showClearAnimation && (
-                <div className="absolute inset-0 z-50 flex flex-col items-center justify-center pointer-events-none bg-black/40 backdrop-blur-sm animate-in fade-in duration-500">
-                    <div className="transform -rotate-6 animate-bounce">
+                <div
+                    className="absolute inset-0 z-50 flex flex-col items-center justify-center pointer-events-none bg-black/40 backdrop-blur-sm animate-in fade-in duration-500"
+                    role="status"
+                    aria-live="polite"
+                >
+                    <div className="transform -rotate-6 motion-safe:animate-bounce">
                         <div className="text-center drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)]">
                             <div className="text-5xl md:text-7xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-600 tracking-wider">
                                 MISSION

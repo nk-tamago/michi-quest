@@ -98,7 +98,11 @@ export default function Sidebar({
                                         <div className="flex items-center gap-2">
                                             <div className="text-sm font-medium truncate">{session.title || 'ミッション開始前'}</div>
                                             {session.isCleared && (
-                                                <span className="text-[10px] font-black italic bg-gradient-to-r from-red-600 to-orange-500 text-white px-1.5 py-0.5 rounded shadow-sm border border-red-400/50 tracking-wider flex-shrink-0">
+                                                <span
+                                                    className="text-[10px] font-black italic bg-gradient-to-r from-red-600 to-orange-500 text-white px-1.5 py-0.5 rounded shadow-sm border border-red-400/50 tracking-wider flex-shrink-0"
+                                                    title="ミッションクリア済み"
+                                                    aria-label="クリア済み"
+                                                >
                                                     CLEAR!
                                                 </span>
                                             )}

@@ -9,6 +9,7 @@
 4.  **レスポンスパース (`App.jsx` / `ChatThread.jsx`)**:
     *   応答から `[AREA: ...]` を正規表現で取り出し、地図コンポーネント用の `currentMissionArea` ステートに保存。該当文字列はチャット画面では置換（非表示）とする。
     *   同様に `[TITLE: ...]` (称号), `[SCORE: ...]` (得点) をパースし、コレクションとしてLocalStorageに保存。
+    *   **クリア判定と演出**: 正のスコア（> 0）を獲得した際に、当該セッションの状態（`isCleared`）を true に更新し永続化する。更新と同時にチャット画面上に「MISSION CLEARED!」等のアニメーションをオーバーレイ表示し、サイドバーの一覧にも「CLEAR!」バッジを表示する。
 
 ## 2. ハルシネーション（目的地架空生成）防止フロー
 *   **概要**: ミッション生成時に `[AREA]` タグが含まれていた場合、事前にOpenStreetMapなどで実在判定を行う（フェーズ3設計）。
@@ -27,6 +28,7 @@
     *   `ChatThread.jsx` 内に `replayIndex` ステートを持つ。
     *   表示する履歴を `chatHistory.slice(0, replayIndex + 1)` として描画。
     *   右矢印キーによるインクリメント、オートプレイ（`setInterval`）による動的インクリメントに対応。
+    *   **クリア演出の再現**: `isCleared` が true のセッションをリプレイした場合、最終インデックスまで再生が到達した時点で、手動プレイ時と同様のクリアアニメーションを再表示する。
 
 ## 4. 画面レイアウト・ルーティング
 *   React Router等のライブラリは使用せず、`App.jsx` の `currentTab` Stateによってコンポーネント (`ChatThread`, `MapInteractive`, `Settings`) を切り替えるSPA（Single Page Application）として構築。
