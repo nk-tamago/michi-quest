@@ -42,3 +42,7 @@ MichiQuest はモダンなフロントエンド技術のみで完結するサー
 *   Reactの標準機能である `useState` と `useEffect` を中心に状態を管理し、`useLocalStorage` カスタムフックによって永続化しています。
 *   **グローバルな状態**: `App.jsx` が保持。`chatSessions` (全履歴)、`totalScore` (通算スコア)、`titlesCollection` (獲得称号)、各種設定(APIキー、プロンプト、アバター)。
 *   **ローカルな状態**: `ChatThread.jsx` (入力テキスト、画像プレビュー、リプレイステート)、`MapInteractive.jsx` (地図の現在地表示)。
+
+## 5. デプロイメント層 (Deployment)
+*   **ホスティング環境**: GitHub Pages にデプロイしてパブリックに公開します。
+*   **自動デプロイメント (CI/CD)**: GitHub Actions を用いて、`main` ブランチへのプッシュをトリガーとして静的ファイルのビルド（`vite build`）と GitHub Pages へのデプロイを自動化しています。
