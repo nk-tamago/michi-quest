@@ -94,7 +94,7 @@ export default function ChatThread({
         setLoading(true);
         setError('');
 
-        const currentInput = inputText || '今日のミッションちょうだい！';
+        const currentInput = inputText || '新規ミッションを伝えてください';
         const userMsg = { id: Date.now(), role: 'user', type: 'text', text: currentInput };
         setChatHistory(prev => [...prev, userMsg]);
         const savedInput = inputText;
@@ -347,15 +347,28 @@ export default function ChatThread({
         }
     };
 
+    useEffect(() => {
+        // 新規作成された空のセッションが開かれた時の自動送信
+        if (!isReplayMode && apiKey && chatHistory.length === 0 && !loading && !currentMission) {
+            const timer = setTimeout(() => {
+                if (chatHistory.length === 0 && !loading) {
+                    handleRequestMission();
+                }
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isReplayMode, apiKey, chatHistory.length, currentMission]);
+
     return (
         <div className="flex flex-col h-full relative">
             {/* Chat Timeline Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-32">
                 {displayedHistory.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-earth-500 opacity-50">
-                        <MapIcon size={64} className="mb-4" />
-                        <p>まだ会話がありません。</p>
-                        <p>下のボタンからミッションを要求してみましょう。</p>
+                        <MapIcon size={64} className="mb-4 animate-pulse" />
+                        <p>ナビゲーションシステム起動中...</p>
+                        <p className="text-sm mt-2">自動でミッションを受信します</p>
                     </div>
                 ) : (
                     displayedHistory.map((msg) => (
@@ -482,7 +495,7 @@ export default function ChatThread({
                                     onChange={(e) => setInputText(e.target.value)}
                                     onKeyDown={handleKeyDown}
                                     disabled={loading || isProcessingImage}
-                                    placeholder={!currentMission ? "ミッションを要求する..." : "何かメッセージを送る (Ctrl+Enterで送信)"}
+                                    placeholder={!currentMission ? "送信してミッションを開始するか、条件を入力..." : "何かメッセージを送る (Ctrl+Enterで送信)"}
                                     className="flex-1 px-4 py-3 bg-white border border-earth-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-earth-800 resize-none overflow-hidden min-h-[50px] max-h-[120px]"
                                     rows="1"
                                 />
