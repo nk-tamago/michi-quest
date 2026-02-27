@@ -533,7 +533,6 @@ export default function ChatThread({
                                 <input
                                     type="file"
                                     accept="image/*"
-                                    capture="environment"
                                     ref={fileInputRef}
                                     onChange={handleImageUpload}
                                     className="hidden"
