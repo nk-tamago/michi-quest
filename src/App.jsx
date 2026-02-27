@@ -31,6 +31,9 @@ export default function App() {
   // 累計スコア
   const [totalScore, setTotalScore] = useLocalStorage('totalScore', 0);
 
+  // 獲得称号リスト（コレクション）
+  const [titlesCollection, setTitlesCollection] = useLocalStorage('titlesCollection', []); // [{ title: "...", date: "...", ... }]
+
   // セッション管理系
   // 初回ロード時に既存のchatHistory互換性維持等を含めて遅延評価(Lazy Initialization)
   const [sessions, setSessions] = useLocalStorage('chatSessions', () => {
@@ -241,6 +244,7 @@ export default function App() {
           onNewSession={handleNewSession}
           onDeleteSession={handleDeleteSession}
           totalScore={totalScore}
+          titlesCollection={titlesCollection}
         />
 
         <main className="flex-1 w-full bg-earth-100 h-full overflow-hidden flex flex-col relative">
@@ -286,6 +290,7 @@ export default function App() {
                 currentMission={currentMission}
                 setCurrentMission={handleUpdateCurrentMission}
                 onScoreAdded={(score) => setTotalScore(prev => prev + score)}
+                onTitleAdded={(newTitleData) => setTitlesCollection(prev => [newTitleData, ...prev])}
               />
             )
           )}

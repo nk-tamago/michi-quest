@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ChatBubble from '../components/ChatBubble';
 import Button from '../components/Button';
-import { Camera, Send, Loader2, Map as MapIcon, RefreshCcw } from 'lucide-react';
+import { Camera, Send, Loader2, Map as MapIcon, RefreshCcw, Award } from 'lucide-react';
 import { generateMission, evaluateReport, verifyLocationExists } from '../utils/api';
 import { resizeImage } from '../utils/imageUtils';
 import { getGPSFromImage } from '../utils/exifUtils';
@@ -21,7 +21,8 @@ export default function ChatThread({
     setChatHistory,
     currentMission,
     setCurrentMission,
-    onScoreAdded
+    onScoreAdded,
+    onTitleAdded
 }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -174,18 +175,61 @@ export default function ChatThread({
 
             // SCOREタグのパース
             let displayMsg = resultText;
+            let earnedScore = null;
+            let earnedTitle = null;
+
             const scoreMatch = resultText.match(/\[SCORE:\s*(\d+)\]/i);
             if (scoreMatch) {
                 const score = parseInt(scoreMatch[1], 10);
                 if (!isNaN(score) && onScoreAdded) {
                     onScoreAdded(score);
+                    earnedScore = score;
                 }
                 // 表示用テキストからはSCOREタグを削除
-                displayMsg = resultText.replace(/\[SCORE:\s*\d+\]/ig, '').trim();
+                displayMsg = displayMsg.replace(/\[SCORE:\s*\d+\]/ig, '').trim();
+            }
+
+            // TITLEタグのパース
+            const titleMatch = resultText.match(/\[TITLE:\s*(.*?)\]/i);
+            if (titleMatch) {
+                const newTitle = titleMatch[1].trim();
+                // 0点時の "なし" などを弾く
+                if (newTitle && newTitle !== 'なし' && newTitle !== '無し' && newTitle !== 'None' && onTitleAdded) {
+                    onTitleAdded({
+                        title: newTitle,
+                        date: new Date().toISOString(),
+                        mission: currentMission
+                    });
+                    earnedTitle = newTitle;
+                }
+                // 表示用テキストからはTITLEタグを削除
+                displayMsg = displayMsg.replace(/\[TITLE:\s*.*?\]/ig, '').trim();
+            }
+
+            // ANNOUNCEタグのパース
+            let announceMsg = null;
+            const announceMatch = resultText.match(/\[ANNOUNCE:\s*(.*?)\]/i);
+            if (announceMatch) {
+                announceMsg = announceMatch[1].trim();
+                // 表示用テキストからはANNOUNCEタグを削除
+                displayMsg = displayMsg.replace(/\[ANNOUNCE:\s*.*?\]/ig, '').trim();
             }
 
             const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'text', text: displayMsg };
-            setChatHistory(prev => [...prev, aiMsg]);
+
+            // スコア・称号の発表メッセージをAIの会話として生成
+            const newMessages = [aiMsg];
+            if (announceMsg) {
+                newMessages.push({ id: Date.now() + 2, role: 'ai', type: 'text', text: announceMsg });
+            } else if (earnedScore !== null || earnedTitle !== null) {
+                // Fallback (AI会話トーンにあわせた最低限の報告)
+                let sysText = "";
+                if (earnedScore !== null) sysText += `今回のスコアは ${earnedScore}pt だ！`;
+                if (earnedTitle !== null) sysText += ` 新たな称号「${earnedTitle}」を授ける！`;
+                if (sysText) newMessages.push({ id: Date.now() + 2, role: 'ai', type: 'text', text: sysText.trim() });
+            }
+
+            setChatHistory(prev => [...prev, ...newMessages]);
             // Depending on outcome, we might clear currentMission here
         } catch (err) {
             setError(err.message || "予期せぬエラーが発生しました");
@@ -226,21 +270,32 @@ export default function ChatThread({
                 ) : (
                     chatHistory.map((msg) => (
                         <div key={msg.id} className="w-full">
-                            {msg.type === 'image' && msg.image ? (
-                                <div className={`flex w-full mb-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className="max-w-xs md:max-w-md rounded-xl overflow-hidden shadow-sm border border-earth-300">
-                                        <img src={msg.image} alt="ユーザー報告写真" className="w-full object-cover" width={400} height={300} />
+                            {msg.role === 'system' ? (
+                                <div className="flex justify-center my-4">
+                                    <div className="bg-earth-200 text-earth-800 px-4 py-2 rounded-full text-sm font-bold shadow-sm flex items-center gap-2 border border-earth-300">
+                                        <Award size={18} className="text-yellow-600" />
+                                        {msg.text}
                                     </div>
                                 </div>
-                            ) : null}
-                            <ChatBubble
-                                message={msg.text}
-                                avatarUrl={msg.role === 'ai' ? avatarData : null}
-                                avatarAngry={msg.role === 'ai' ? avatarAngry : null}
-                                avatarJoy={msg.role === 'ai' ? avatarJoy : null}
-                                avatarDisgust={msg.role === 'ai' ? avatarDisgust : null}
-                                isUser={msg.role === 'user'}
-                            />
+                            ) : (
+                                <>
+                                    {msg.type === 'image' && msg.image ? (
+                                        <div className={`flex w-full mb-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                            <div className="max-w-xs md:max-w-md rounded-xl overflow-hidden shadow-sm border border-earth-300">
+                                                <img src={msg.image} alt="ユーザー報告写真" className="w-full object-cover" width={400} height={300} />
+                                            </div>
+                                        </div>
+                                    ) : null}
+                                    <ChatBubble
+                                        message={msg.text}
+                                        avatarUrl={msg.role === 'ai' ? avatarData : null}
+                                        avatarAngry={msg.role === 'ai' ? avatarAngry : null}
+                                        avatarJoy={msg.role === 'ai' ? avatarJoy : null}
+                                        avatarDisgust={msg.role === 'ai' ? avatarDisgust : null}
+                                        isUser={msg.role === 'user'}
+                                    />
+                                </>
+                            )}
                         </div>
                     ))
                 )}

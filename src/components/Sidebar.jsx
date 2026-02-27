@@ -2,11 +2,11 @@ import React from 'react';
 import { X, Plus, MessageSquare, Trash2, Award } from 'lucide-react';
 
 const getRank = (score) => {
-    if (score < 100) return "初心者ライダー";
-    if (score < 500) return "週末ツアラー";
-    if (score < 1000) return "道探求者";
-    if (score < 3000) return "ベテラン探索者";
-    return "MichiQuestマスター";
+    if (score < 100) return "★";
+    if (score < 500) return "★★";
+    if (score < 1000) return "★★★";
+    if (score < 3000) return "★★★★";
+    return "★★★★★";
 };
 
 export default function Sidebar({
@@ -17,8 +17,13 @@ export default function Sidebar({
     onSelectSession,
     onNewSession,
     onDeleteSession,
-    totalScore = 0
+    totalScore = 0,
+    titlesCollection = []
 }) {
+    const [isCollectionOpen, setIsCollectionOpen] = React.useState(false);
+
+    // 直近の称号を取得
+    const latestTitle = titlesCollection.length > 0 ? titlesCollection[0].title : "初心者ライダー";
     return (
         <>
             {/* Overlay for mobile */}
@@ -43,15 +48,23 @@ export default function Sidebar({
                 </div>
 
                 {/* スコア・称号表示エリア */}
-                <div className="p-4 bg-earth-900/30 border-b border-earth-900/50">
-                    <div className="text-xs text-earth-300 mb-1">現在の称号</div>
-                    <div className="flex items-end gap-2 mb-2">
-                        <span className="text-xl font-bold bg-gradient-to-r from-yellow-400 to-amber-600 bg-clip-text text-transparent">
-                            {getRank(totalScore)}
+                <div className="p-4 bg-earth-900/30 border-b border-earth-900/50 relative">
+                    <div className="flex justify-between items-center mb-1">
+                        <div className="text-xs text-earth-300">最新の称号</div>
+                        <button
+                            onClick={() => setIsCollectionOpen(true)}
+                            className="text-xs text-blue-400 hover:text-blue-300 underline flex items-center gap-1"
+                        >
+                            <Award size={12} />全称号を見る
+                        </button>
+                    </div>
+                    <div className="flex flex-col gap-1 mb-2">
+                        <span className="text-lg font-bold bg-gradient-to-r from-yellow-400 to-amber-600 bg-clip-text text-transparent break-words leading-tight">
+                            {latestTitle}
                         </span>
                     </div>
-                    <div className="flex justify-between items-center text-sm">
-                        <span className="text-earth-400">累計スコア</span>
+                    <div className="flex justify-between items-center text-sm border-t border-earth-700/50 pt-2 mt-2">
+                        <span className="text-earth-400 flex items-center gap-1">ランク {getRank(totalScore)}</span>
                         <span className="font-mono font-bold text-earth-100">{totalScore} pt</span>
                     </div>
                 </div>
@@ -103,6 +116,42 @@ export default function Sidebar({
                     )}
                 </div>
             </div>
+
+            {/* Title Collection Modal */}
+            {isCollectionOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70">
+                    <div className="bg-earth-100 rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col shadow-2xl overflow-hidden border border-earth-300">
+                        <div className="p-4 bg-earth-800 text-earth-100 flex justify-between items-center">
+                            <h3 className="font-bold flex items-center gap-2"><Award size={20} className="text-yellow-500" /> 称号コレクション</h3>
+                            <button onClick={() => setIsCollectionOpen(false)} className="p-1 hover:bg-earth-700 rounded-full" aria-label="閉じる"><X size={20} /></button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-earth-50">
+                            {titlesCollection.length === 0 ? (
+                                <div className="text-center text-earth-500 py-8">
+                                    <p>まだ称号を獲得していません。</p>
+                                    <p className="text-sm mt-2">ミッションをクリアして名誉ある称号を手に入れよう！</p>
+                                </div>
+                            ) : (
+                                titlesCollection.map((item, idx) => (
+                                    <div key={idx} className="bg-white p-3 rounded-xl shadow-sm border border-earth-200">
+                                        <div className="font-bold text-lg text-earth-900 break-words mb-2 leading-tight">
+                                            {item.title}
+                                        </div>
+                                        <div className="flex justify-between items-end text-xs text-earth-500">
+                                            <span className="truncate max-w-[70%] text-earth-400" title={item.mission}>
+                                                獲得クエスト: {item.mission.length > 20 ? item.mission.slice(0, 20) + '...' : item.mission}
+                                            </span>
+                                            <span>
+                                                {new Intl.DateTimeFormat('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(item.date))}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }
