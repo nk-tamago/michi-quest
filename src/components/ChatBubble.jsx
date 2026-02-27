@@ -29,15 +29,15 @@ export default function ChatBubble({
     }
 
     return (
-        <div className={`flex w-full mt-4 space-x-3 max-w-xl mx-auto p-2 animate-chat-appear ${isUser ? 'justify-end' : 'justify-start'}`}>
+        <div className={`flex w-full mt-4 space-x-3 md:space-x-4 max-w-xl mx-auto p-2 animate-chat-appear items-start ${isUser ? 'justify-end' : 'justify-start'}`}>
             {!isUser ? (
                 <div className="flex-shrink-0">
                     <img
-                        className="h-12 w-12 rounded-full border-2 border-earth-300 object-cover bg-earth-200"
+                        className="h-28 w-28 md:h-32 md:w-32 rounded-full border-4 border-earth-300 object-cover bg-earth-200 shadow-sm"
                         src={displayAvatar || './pwa-192x192.png'}
                         alt="AI Avatar"
-                        width={48}
-                        height={48}
+                        width={128}
+                        height={128}
                     />
                 </div>
             ) : null}
