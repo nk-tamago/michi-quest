@@ -50,7 +50,8 @@ export default function App() {
             id: newId,
             title: firstMission.slice(0, 15) + '...',
             history: oldHistory,
-            currentMission: ''
+            currentMission: '',
+            isCleared: false
           }];
         }
       } catch { /* ignore */ }
@@ -167,9 +168,19 @@ export default function App() {
     }));
   };
 
+  const handleMissionCleared = () => {
+    if (!currentSessionId) return;
+    setSessions(prev => prev.map(s => {
+      if (s.id === currentSessionId) {
+        return { ...s, isCleared: true };
+      }
+      return s;
+    }));
+  };
+
   const handleNewSession = () => {
     const newId = Date.now();
-    const newSession = { id: newId, title: '', history: [], currentMission: '' };
+    const newSession = { id: newId, title: '', history: [], currentMission: '', isCleared: false };
     setSessions(prev => [newSession, ...prev]);
     setCurrentSessionId(newId);
     setCurrentTab('chat');
@@ -306,6 +317,8 @@ export default function App() {
                 setCurrentMission={handleUpdateCurrentMission}
                 onScoreAdded={(score) => setTotalScore(prev => prev + score)}
                 onTitleAdded={(newTitleData) => setTitlesCollection(prev => [newTitleData, ...prev])}
+                onMissionCleared={handleMissionCleared}
+                isSessionCleared={activeSession?.isCleared}
                 isReplayMode={isReplayMode}
                 onExitReplay={() => setIsReplayMode(false)}
               />

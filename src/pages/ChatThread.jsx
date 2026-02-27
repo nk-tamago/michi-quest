@@ -25,6 +25,8 @@ export default function ChatThread({
     setCurrentMission,
     onScoreAdded,
     onTitleAdded,
+    onMissionCleared,
+    isSessionCleared,
     isReplayMode = false,
     onExitReplay
 }) {
@@ -42,13 +44,28 @@ export default function ChatThread({
     const [replayIndex, setReplayIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
 
+    // クリア演出用ステート
+    const [showClearAnimation, setShowClearAnimation] = useState(false);
+    const [clearedTitle, setClearedTitle] = useState(null);
+
     // モード切り替え時にリプレイを初期化
     useEffect(() => {
         if (isReplayMode) {
             setReplayIndex(0);
             setIsPlaying(false);
+            setShowClearAnimation(false);
         }
     }, [isReplayMode, currentMission]);
+
+    // リプレイ終了時のクリア演出
+    useEffect(() => {
+        if (isReplayMode && isSessionCleared && chatHistory.length > 0 && replayIndex === chatHistory.length - 1) {
+            setShowClearAnimation(true);
+            setTimeout(() => setShowClearAnimation(false), 5000);
+        } else if (isReplayMode) {
+            setShowClearAnimation(false);
+        }
+    }, [isReplayMode, isSessionCleared, replayIndex, chatHistory.length]);
 
     // 表示用の履歴配列（リプレイモード時はスライスする）
     const displayedHistory = isReplayMode ? chatHistory.slice(0, replayIndex + 1) : chatHistory;
@@ -262,6 +279,16 @@ export default function ChatThread({
                 displayMsg = displayMsg.replace(/\[TITLE:\s*.*?\]/ig, '').trim();
             }
 
+            // クリア判定と演出のトリガー
+            if (earnedScore !== null && earnedScore > 0) {
+                if (onMissionCleared) onMissionCleared();
+                if (!isReplayMode) {
+                    setClearedTitle(earnedTitle);
+                    setShowClearAnimation(true);
+                    setTimeout(() => setShowClearAnimation(false), 5000); // 5秒後に消す
+                }
+            }
+
             // ANNOUNCEタグのパース
             let announceMsg = null;
             const announceMatch = resultText.match(/\[ANNOUNCE:\s*(.*?)\]/i);
@@ -430,6 +457,27 @@ export default function ChatThread({
                 <div ref={chatEndRef} />
             </div>
 
+            {/* Clear Animation Overlay */}
+            {showClearAnimation && (
+                <div className="absolute inset-0 z-50 flex flex-col items-center justify-center pointer-events-none bg-black/40 backdrop-blur-sm animate-in fade-in duration-500">
+                    <div className="transform -rotate-6 animate-bounce">
+                        <div className="text-center drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)]">
+                            <div className="text-5xl md:text-7xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-600 tracking-wider">
+                                MISSION
+                            </div>
+                            <div className="text-6xl md:text-9xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-orange-400 to-red-600 tracking-tighter leading-none mt-[-10px]">
+                                CLEARED!
+                            </div>
+                        </div>
+                        {clearedTitle && (
+                            <div className="mt-8 mx-auto text-center bg-black/80 text-yellow-400 px-6 py-2 rounded-full font-bold shadow-[0_0_15px_rgba(234,179,8,0.5)] border border-yellow-500/50 transform scale-125">
+                                👑 新たな称号「{clearedTitle}」を獲得！
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Input Area (Bottom Sticky - Switches with Replay Controls) */}
             <div className="absolute bottom-0 left-0 right-0 bg-earth-100 border-t border-earth-300 p-2 sm:p-4 shadow-lg">
                 <div className="max-w-3xl mx-auto">
@@ -501,6 +549,7 @@ export default function ChatThread({
                                 />
 
                                 <button
+                                    id="send-btn"
                                     onClick={handleSend}
                                     disabled={loading || isProcessingImage || (!inputText.trim() && !imageBase64 && currentMission)}
                                     className="p-3 md:p-4 bg-earth-800 text-earth-100 rounded-xl hover:bg-earth-900 transition-colors disabled:opacity-50 flex items-center justify-center shrink-0"
