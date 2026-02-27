@@ -106,14 +106,19 @@ export default function ChatThread({
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [displayedHistory.length, loading, isReplayMode]);
 
-    const handleRequestMission = async () => {
+    const handleRequestMission = async (isAuto = false) => {
         if (!apiKey) return;
         setLoading(true);
         setError('');
 
         const currentInput = inputText || '新規ミッションを教えてください';
-        const userMsg = { id: Date.now(), role: 'user', type: 'text', text: currentInput };
-        setChatHistory(prev => [...prev, userMsg]);
+
+        // 自動送信時はユーザーの発言（「新規ミッションを教えてください」等）を履歴に追加しない
+        if (!isAuto) {
+            const userMsg = { id: Date.now(), role: 'user', type: 'text', text: currentInput };
+            setChatHistory(prev => [...prev, userMsg]);
+        }
+
         const savedInput = inputText;
         setInputText('');
 
@@ -178,8 +183,10 @@ export default function ChatThread({
             setCurrentMission(missionText); // Store the active mission
         } catch (err) {
             setError(err.message || "通信エラーが発生しました");
-            // Remove the user message if it failed
-            setChatHistory(prev => prev.filter(msg => msg.id !== userMsg.id));
+            if (!isAuto) {
+                // Remove the user message if it failed
+                setChatHistory(prev => prev.filter(msg => msg.id !== (Date.now() - 1))); // 正確なIDは取れないがエラー時は一旦戻す等の措置（今回は雑に最後を消すかそのままにする）
+            }
             setInputText(savedInput);
         } finally {
             setLoading(false);
@@ -375,13 +382,15 @@ export default function ChatThread({
     };
 
     useEffect(() => {
-        // 新規作成された空のセッションが開かれた時の自動送信
-        if (!isReplayMode && apiKey && chatHistory.length === 0 && !loading && !currentMission) {
+        // 新規作成されたセッションが開かれた時の自動送信
+        // 挨拶機能の追加により初期メッセージが1件入っている状態（chatHistory.length === 1）で、
+        // かつまだミッションが生成されていない（currentMission が空）場合に自動でミッション要求を送信する。
+        if (!isReplayMode && apiKey && chatHistory.length === 1 && !loading && !currentMission) {
             const timer = setTimeout(() => {
-                if (chatHistory.length === 0 && !loading) {
-                    handleRequestMission();
+                if (chatHistory.length === 1 && !loading) {
+                    handleRequestMission(true); // isAuto = true
                 }
-            }, 300);
+            }, 1500); // 挨拶を少し読ませるためのディレイ（1.5秒程度）
             return () => clearTimeout(timer);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -7,7 +7,7 @@ export const APP_CONFIG = {
     { id: 'gemini-3-flash-preview', label: 'Gemini 3 Flash Preview (最新・高速)' },
     { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (推奨・高速)' },
     { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (高性能)' },
-    { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite (低速・低性能)'}
+    { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite (低速・低性能)' }
   ],
 
   // ベースキャラクター設定（michi-noma-character.mdからインポート）
@@ -23,5 +23,13 @@ export const APP_CONFIG = {
   defaultPrompt3: "【システム指示：オペレータ対応（通常会話）】\n現在、プレイヤーはミッション進行中（または移動中）です。プレイヤーからの報告や雑談に対して、専属ナビゲーターとして応答してください。100文字以内で出力してください。\n\n【重要】出力の最後（文末）に必ずその時の感情を示すタグを `[Emotion: normal]`, `[Emotion: angry]`, `[Emotion: joy]`, `[Emotion: disgust]` のいずれか1つだけ付与してください。\n※このモードでは新たなミッションの発行（AREAタグ）やスコア・称号の付与（SCORE, TITLE, ANNOUNCEタグ）は行わないでください。",
 
   // ハルシネーション対策用のデフォルト目的地リスト
-  defaultDestinationList: "道の駅もっくる新城\n豊川稲荷\n竹島水族館\n伊良湖岬\n蔵王山展望台\n鳳来寺山\n茶臼山高原\n浜名湖\n奥浜名湖"
+  defaultDestinationList: "道の駅もっくる新城\n豊川稲荷\n竹島水族館\n伊良湖岬\n蔵王山展望台\n鳳来寺山\n茶臼山高原\n浜名湖\n奥浜名湖",
+
+  // 新規セッション開始時のミチ・ノマのランダム挨拶リスト
+  greetings: [
+    "システム起動。現在位置の特定を推奨します。……無駄な走行トラブルは処理が増えるので避けてください。",
+    "ナビゲーター、ミチ・ノマです。ミッションの準備が完了しました。目的地を選定するため、現在地周辺の環境データを報告してください。",
+    "……システムオンライン。あなたの125ccの機動力を試す時が来ました。効率的なルーティングを期待しています。",
+    "接続完了。ミッション要求を受信可能な状態です。……言っておきますが、途中で美味しそうな飲食店に寄り道するなどといった、非合理的なルート変更は推奨しませんからね。"
+  ]
 };

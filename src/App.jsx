@@ -180,7 +180,15 @@ export default function App() {
 
   const handleNewSession = () => {
     const newId = Date.now();
-    const newSession = { id: newId, title: '', history: [], currentMission: '', isCleared: false };
+    const randomGreeting = APP_CONFIG.greetings[Math.floor(Math.random() * APP_CONFIG.greetings.length)];
+    const initialHistory = [
+      { id: Date.now() + 1, role: 'ai', type: 'text', text: randomGreeting }
+    ];
+
+    // 最初の定型文の最初の一部などをタイトルにする（後でミッション生成時に上書きされる想定）
+    const initialTitle = "ミッション準備中...";
+
+    const newSession = { id: newId, title: initialTitle, history: initialHistory, currentMission: '', isCleared: false };
     setSessions(prev => [newSession, ...prev]);
     setCurrentSessionId(newId);
     setCurrentTab('chat');
