@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ChatBubble from '../components/ChatBubble';
 import Button from '../components/Button';
-import { Camera, Send, Loader2, Map as MapIcon, RefreshCcw, Award, Play, Pause, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Camera, Send, Loader2, Map as MapIcon, RefreshCcw, Award, Play, Pause, ChevronLeft, ChevronRight, X, Image as ImageIcon } from 'lucide-react';
 import { generateMission, evaluateReport, verifyLocationExists, chatWithOperator } from '../utils/api';
 import { resizeImage } from '../utils/imageUtils';
 import { getGPSFromImage } from '../utils/exifUtils';
@@ -37,8 +37,11 @@ export default function ChatThread({
     const [imageBase64, setImageBase64] = useState(null);
     const [imageLocation, setImageLocation] = useState(null);
     const [isProcessingImage, setIsProcessingImage] = useState(false);
-    const fileInputRef = useRef(null);
+    const [isImageMenuOpen, setIsImageMenuOpen] = useState(false); // メニュー開閉状態
+    const cameraInputRef = useRef(null); // カメラ用 (capture="environment")
+    const galleryInputRef = useRef(null); // ギャラリー用
     const chatEndRef = useRef(null);
+    const menuRef = useRef(null); // メニュー領域外クリック検知用
 
     // リプレイ用ステート
     const [replayIndex, setReplayIndex] = useState(0);
@@ -105,6 +108,19 @@ export default function ChatThread({
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [displayedHistory.length, loading, isReplayMode]);
+
+    // 画像メニューの外側をクリックした時に閉じる処理
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                setIsImageMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     const handleRequestMission = async (isAuto = false) => {
         if (!apiKey) return;
@@ -221,7 +237,8 @@ export default function ChatThread({
         setImagePreview(null);
         setImageBase64(null);
         setImageLocation(null);
-        if (fileInputRef.current) fileInputRef.current.value = '';
+        if (cameraInputRef.current) cameraInputRef.current.value = '';
+        if (galleryInputRef.current) galleryInputRef.current.value = '';
     };
 
     const handleReportMission = async () => {
@@ -528,23 +545,57 @@ export default function ChatThread({
                                 </div>
                             ) : null}
 
-                            <div className="flex gap-2">
-                                {/* Hidden File Input */}
+                            <div className="flex gap-2 relative">
+                                {/* Hidden File Inputs */}
                                 <input
                                     type="file"
                                     accept="image/*"
-                                    ref={fileInputRef}
-                                    onChange={handleImageUpload}
+                                    capture="environment"
+                                    ref={cameraInputRef}
+                                    onChange={(e) => {
+                                        setIsImageMenuOpen(false);
+                                        handleImageUpload(e);
+                                    }}
+                                    className="hidden"
+                                />
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    ref={galleryInputRef}
+                                    onChange={(e) => {
+                                        setIsImageMenuOpen(false);
+                                        handleImageUpload(e);
+                                    }}
                                     className="hidden"
                                 />
 
-                                {/* Upload Button */}
+                                {/* Menu Content */}
+                                {isImageMenuOpen && (
+                                    <div ref={menuRef} className="absolute bottom-full left-0 mb-2 w-48 bg-white rounded-xl shadow-xl border border-earth-200 overflow-hidden z-50 animate-in slide-in-from-bottom-2 fade-in duration-200">
+                                        <button
+                                            className="w-full flex items-center gap-3 px-4 py-3 text-left text-earth-800 hover:bg-earth-100 transition-colors font-bold border-b border-earth-100"
+                                            onClick={() => cameraInputRef.current?.click()}
+                                        >
+                                            <div className="bg-blue-100 p-2 rounded-full text-blue-600"><Camera size={18} /></div>
+                                            カメラで撮影
+                                        </button>
+                                        <button
+                                            className="w-full flex items-center gap-3 px-4 py-3 text-left text-earth-800 hover:bg-earth-100 transition-colors font-bold"
+                                            onClick={() => galleryInputRef.current?.click()}
+                                        >
+                                            <div className="bg-green-100 p-2 rounded-full text-green-600"><ImageIcon size={18} /></div>
+                                            写真から選ぶ
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Attach Button (Toggles Menu) */}
                                 <button
-                                    onClick={() => fileInputRef.current?.click()}
+                                    onClick={() => setIsImageMenuOpen(!isImageMenuOpen)}
                                     disabled={loading || isProcessingImage}
-                                    className="p-3 md:p-4 bg-earth-200 text-earth-700 rounded-xl border-2 border-earth-300 hover:bg-earth-300 transition-colors disabled:opacity-50"
+                                    className={`p-3 md:p-4 rounded-xl border-2 hover:bg-earth-300 transition-colors disabled:opacity-50 ${isImageMenuOpen ? 'bg-earth-300 border-earth-400 text-earth-800' : 'bg-earth-200 border-earth-300 text-earth-700'}`}
                                     title="写真を添付"
-                                    aria-label="写真を添付"
+                                    aria-label="写真を添付メニューを開く"
                                 >
                                     {isProcessingImage ? <Loader2 className="animate-spin" size={24} /> : <Camera size={24} />}
                                 </button>
