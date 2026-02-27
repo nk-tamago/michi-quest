@@ -452,7 +452,7 @@ export default function ChatThread({
                         <div className="flex-shrink-0">
                             <img className="h-28 w-28 md:h-32 md:w-32 rounded-full border-4 border-earth-300 object-cover bg-earth-200 shadow-sm" src={avatarData || './pwa-192x192.png'} alt="AI Avatar" width={128} height={128} />
                         </div>
-                        <div className="relative px-5 py-4 text-base shadow-sm bg-white text-earth-900 rounded-2xl rounded-tl-none border border-earth-200 flex items-center gap-2">
+                        <div className="relative px-5 py-4 text-lg md:text-xl shadow-sm bg-white text-earth-900 rounded-2xl rounded-tl-none border border-earth-200 flex items-center gap-2">
                             <Loader2 className="animate-spin text-earth-500" size={20} />
                             <span className="text-earth-500 animate-pulse">入力中...</span>
                         </div>
@@ -557,7 +557,7 @@ export default function ChatThread({
                                     onKeyDown={handleKeyDown}
                                     disabled={loading || isProcessingImage}
                                     placeholder={!currentMission ? "送信してミッションを開始するか、条件を入力..." : "何かメッセージを送る (Ctrl+Enterで送信)"}
-                                    className="flex-1 px-4 py-3 bg-white border border-earth-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-earth-800 resize-none overflow-hidden min-h-[50px] max-h-[120px]"
+                                    className="flex-1 px-4 py-3 text-lg bg-white border border-earth-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-earth-800 resize-none overflow-hidden min-h-[50px] max-h-[120px]"
                                     rows="1"
                                 />
 

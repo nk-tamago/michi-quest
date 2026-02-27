@@ -42,7 +42,7 @@ export default function ChatBubble({
                 </div>
             ) : null}
 
-            <div className={`relative px-5 py-4 text-base md:text-lg shadow-sm
+            <div className={`relative px-5 py-4 text-lg md:text-xl shadow-sm
         ${isUser
                     ? 'bg-earth-800 text-earth-100 rounded-2xl rounded-tr-none'
                     : 'bg-white text-earth-900 rounded-2xl rounded-tl-none border border-earth-200'
