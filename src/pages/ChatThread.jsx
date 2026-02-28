@@ -606,7 +606,7 @@ export default function ChatThread({
                                     onChange={(e) => setInputText(e.target.value)}
                                     onKeyDown={handleKeyDown}
                                     disabled={loading || isProcessingImage}
-                                    placeholder={!currentMission ? "送信してミッションを開始するか、条件を入力..." : "何かメッセージを送る (Ctrl+Enterで送信)"}
+                                    placeholder={!currentMission ? "ミッションの条件を入力..." : "メッセージを入力..."}
                                     className="flex-1 px-4 py-3 text-lg bg-white border border-earth-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-earth-800 resize-none overflow-hidden min-h-[50px] max-h-[120px]"
                                     rows="1"
                                 />
