@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+import { LocateFixed } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -27,7 +28,52 @@ function MapUpdater({ center, zoom }) {
     return null;
 }
 
-export default function MapInteractive({ center = [35.681236, 139.767125], zoom = 13, missionArea, userLocation, markers = [] }) {
+function LocateControl({ onUpdateLocation }) {
+    const map = useMap();
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleLocate = () => {
+        if (!navigator.geolocation) {
+            alert("お使いのブラウザは位置情報取得に対応していません。");
+            return;
+        }
+        setIsLoading(true);
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const { latitude, longitude } = pos.coords;
+                const newLoc = [latitude, longitude];
+                if (onUpdateLocation) onUpdateLocation(newLoc);
+                map.flyTo(newLoc, 15, { animate: true, duration: 1 });
+                setIsLoading(false);
+            },
+            (err) => {
+                console.error(err);
+                alert("現在地の取得に失敗しました。スマホの設定で位置情報が許可されているか確認してください。");
+                setIsLoading(false);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    };
+
+    return (
+        <div className="absolute bottom-6 right-4" style={{ zIndex: 1000 }}>
+            <button
+                onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleLocate();
+                }}
+                disabled={isLoading}
+                className="w-14 h-14 bg-white rounded-full shadow-[0_3px_8px_rgba(0,0,0,0.24)] flex items-center justify-center hover:bg-gray-50 focus:outline-none transition-transform active:scale-95 text-gray-700"
+                title="現在地へ移動"
+            >
+                <LocateFixed size={28} className={isLoading ? 'animate-pulse text-blue-500' : 'text-gray-700'} />
+            </button>
+        </div>
+    );
+}
+
+export default function MapInteractive({ center = [35.681236, 139.767125], zoom = 13, missionArea, userLocation, onUpdateLocation, markers = [] }) {
     return (
         <div className="h-full w-full relative z-0">
             <MapContainer center={center} zoom={zoom} scrollWheelZoom={true} className="h-full w-full" style={{ minHeight: '300px' }}>
@@ -37,6 +83,8 @@ export default function MapInteractive({ center = [35.681236, 139.767125], zoom 
                 />
 
                 <MapUpdater center={center} zoom={zoom} />
+
+                <LocateControl onUpdateLocation={onUpdateLocation} />
 
                 {/* Mission Area (Circle) */}
                 {missionArea && (

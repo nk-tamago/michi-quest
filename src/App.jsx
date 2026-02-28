@@ -79,38 +79,19 @@ export default function App() {
   const [userLocation, setUserLocation] = useState(null); // [lat, lng]
   const [mapCenter] = useState([35.681236, 139.767125]); // default: Tokyo Station
 
-  // 現在位置の監視開始
+  // 初回のみ現在地を取得して初期位置とする
   useEffect(() => {
     if (!navigator.geolocation) return;
 
-    const id = navigator.geolocation.watchPosition(
+    navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
         setUserLocation([latitude, longitude]);
-        // 初回のみ、またはまだ追従モードなら中心を移動させるなどのロジックも可
-        // 今回は「現在地が取れたらとりあえず中心もそこにする（初回ロード時）」などの簡易実装にするか、
-        // ユーザーが動かしたかを判定する必要があるが、シンプルに「現在地があればそこに」する
-        // ただし、毎回動くとウザいので、初回取得時だけセットする、あるいはボタンで移動するなど
       },
       (err) => console.error(err),
       { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
     );
-    return () => navigator.geolocation.clearWatch(id);
   }, []);
-
-  // ユーザー位置が取れたら、初回だけマップ中心をそこに合わせる（簡易的）
-  useEffect(() => {
-    if (userLocation) {
-      // すでに中心がユーザー位置付近なら更新しない、などの制御も本来は必要だが
-      // ここでは「現在地取得成功時に一度だけ」のようなフラグ管理が面倒なので
-      // シンプルに「ユーザー位置が更新されたらマップ中心を追従」させない（手動移動を阻害するため）
-      // そのため、ここはコメントアウトして、MapInteractiveに「ユーザー位置」だけ渡す
-      // MapInteractive側で「現在地へ移動」ボタンを作るのがベストだが、
-      // 今回はシンプルに「初期位置もユーザー位置」にしたい場合、
-      // state初期値を工夫するか、別途ボタンを用意する。
-      // いったん、userLocationをMapInteractiveに渡すだけにする。
-    }
-  }, [userLocation]);
 
   // --- State更新時に、現在のセッションへ同期するラッパー関数 ---
   const handleUpdateChatHistory = (newHistory) => {
@@ -346,6 +327,7 @@ export default function App() {
                 center={userLocation || mapCenter}
                 zoom={15}
                 userLocation={userLocation}
+                onUpdateLocation={(loc) => setUserLocation(loc)}
                 missionArea={currentMissionArea}
                 markers={photoMarkers}
               />
