@@ -129,9 +129,9 @@ export default function ChatThread({
         setLoading(true);
         setError('');
 
-        const currentInput = inputText || '新規ミッションを教えてください';
+        const currentInput = inputText || '次の調査対象を教えてください';
 
-        // 自動送信時はユーザーの発言（「新規ミッションを教えてください」等）を履歴に追加しない
+        // 自動送信時はユーザーの発言（「次の調査対象を教えてください」等）を履歴に追加しない
         if (!isAuto) {
             const userMsg = { id: Date.now(), role: 'user', type: 'text', text: currentInput };
             setChatHistory(prev => [...prev, userMsg]);
@@ -145,7 +145,7 @@ export default function ChatThread({
             let finalPrompt = basePrompt + "\n\n" + prompt1;
             const validDestinations = (destinationList || '').trim();
             if (validDestinations) {
-                finalPrompt += `\n\n【重要】ミッションの目的地は、必ず以下のリストの中から実在するものを1つだけ選んでください。\n${validDestinations}`;
+                finalPrompt += `\n\n【重要】調査の目的地は、必ず以下のリストの中から実在するものを1つだけ選んでください。\n${validDestinations}`;
             }
 
             let missionText = '';
@@ -159,7 +159,7 @@ export default function ChatThread({
                     await new Promise(resolve => setTimeout(resolve, 2000));
                 }
 
-                // 生成。文脈にはエラー状況を含めず、常にフラットな「ミッションちょうだい」要求としてリトライ
+                // 生成。文脈にはエラー状況を含めず、常にフラットな「調査依頼ちょうだい」要求としてリトライ
                 missionText = await generateMission(apiKey, aiModel, finalPrompt, currentHistory, currentInput);
 
                 // AREAタグからnameを抽出
@@ -193,7 +193,7 @@ export default function ChatThread({
 
             if (!isValid) {
                 console.warn("Max retries reached. Using the last generated mission.");
-                // リトライ上限に達した場合でも、取得できた最後のミッションは採用する
+                // リトライ上限に達した場合でも、取得できた最後の調査依頼は採用する
             }
 
             const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'text', text: missionText };
@@ -248,7 +248,7 @@ export default function ChatThread({
         setLoading(true);
         setError('');
 
-        const currentInput = inputText || 'ミッション完了！写真を見て！';
+        const currentInput = inputText || '調査完了！記録データを確認して！';
         const userMsg = {
             id: Date.now(),
             role: 'user',
@@ -270,7 +270,7 @@ export default function ChatThread({
         try {
             // パラメータ: apiKey, aiModel, systemInstruction, missionText, imageBase64, chatHistory, newText
             const finalPrompt = basePrompt + "\n\n" + prompt2;
-            const resultText = await evaluateReport(apiKey, aiModel, finalPrompt, currentMission || "ミッション不明", imageBase64, chatHistory, currentInput);
+            const resultText = await evaluateReport(apiKey, aiModel, finalPrompt, currentMission || "調査対象不明", imageBase64, chatHistory, currentInput);
 
             // SCOREタグのパース
             let displayMsg = resultText;
@@ -364,7 +364,7 @@ export default function ChatThread({
         setInputText('');
 
         try {
-            const finalPrompt = basePrompt + "\n\n" + prompt3 + `\n\n【システムデータ】\n現在進行中のミッション：${currentMission}`;
+            const finalPrompt = basePrompt + "\n\n" + prompt3 + `\n\n【システムデータ】\n現在進行中の調査対象：${currentMission}`;
             const replyText = await chatWithOperator(apiKey, aiModel, finalPrompt, chatHistory, currentInput);
 
             // AREAタグからnameを抽出して現在地を更新する処理
@@ -378,7 +378,7 @@ export default function ChatThread({
                         // 実在チェック
                         const exists = await verifyLocationExists(areaData.name);
                         if (exists) {
-                            setCurrentMission(replyText); // App.jsx側でミッション情報を更新する
+                            setCurrentMission(replyText); // App.jsx側で調査情報を更新する
                             console.log(`Mission updated to ${areaData.name}`);
                         } else {
                             console.warn(`Location ${areaData.name} not found. Ignored AREA tag.`);
@@ -428,7 +428,7 @@ export default function ChatThread({
     useEffect(() => {
         // 新規作成されたセッションが開かれた時の自動送信
         // 挨拶機能の追加により初期メッセージが1件入っている状態（chatHistory.length === 1）で、
-        // かつまだミッションが生成されていない（currentMission が空）場合に自動でミッション要求を送信する。
+        // かつまだ調査対象が生成されていない（currentMission が空）場合に自動で調査要求を送信する。
         if (!isReplayMode && apiKey && chatHistory.length === 1 && !loading && !currentMission) {
             const timer = setTimeout(() => {
                 if (chatHistory.length === 1 && !loading) {
@@ -448,7 +448,7 @@ export default function ChatThread({
                     <div className="flex flex-col items-center justify-center h-full text-earth-500 opacity-50">
                         <MapIcon size={64} className="mb-4 animate-pulse" />
                         <p>ナビゲーションシステム起動中...</p>
-                        <p className="text-sm mt-2">自動でミッションを受信します</p>
+                        <p className="text-sm mt-2">自動で調査依頼を受信します</p>
                     </div>
                 ) : (
                     displayedHistory.map((msg) => (
@@ -651,7 +651,7 @@ export default function ChatThread({
                                     onChange={(e) => setInputText(e.target.value)}
                                     onKeyDown={handleKeyDown}
                                     disabled={loading || isProcessingImage}
-                                    placeholder={!currentMission ? "ミッションの条件を入力..." : "メッセージを入力..."}
+                                    placeholder={!currentMission ? "調査の条件を入力..." : "メッセージを入力..."}
                                     className="flex-1 px-4 py-3 text-lg bg-white border border-earth-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-earth-800 resize-none overflow-hidden min-h-[50px] max-h-[120px]"
                                     rows="1"
                                 />

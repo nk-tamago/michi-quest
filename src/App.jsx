@@ -45,7 +45,7 @@ export default function App() {
         const oldHistory = JSON.parse(oldHistoryStr);
         if (oldHistory.length > 0) {
           const newId = Date.now();
-          const firstMission = oldHistory.find(m => m.role === 'ai')?.text || '過去のミッション';
+          const firstMission = oldHistory.find(m => m.role === 'ai')?.text || '過去の調査';
           return [{
             id: newId,
             title: firstMission.slice(0, 15) + '...',
@@ -125,10 +125,10 @@ export default function App() {
         }
 
         let title = s.title;
-        const isInitialTitle = (!title || title === "ミッション準備中...");
+        const isInitialTitle = (!title || title === "調査対象を選定中...");
 
         if (areaData && areaData.name) {
-          // ミッションが変更された場合はタイトルも更新する
+          // 調査対象が変更された場合はタイトルも更新する
           title = `📍${areaData.name}`;
         } else if (isInitialTitle && missionValue) {
           const cleanText = missionValue
@@ -139,7 +139,7 @@ export default function App() {
         }
 
         // AREAタグが見つかった場合のみ更新（ストリーミング中の点滅防止のため、基本は維持or上書き）
-        // ただし新しいミッション（title未定時など）の場合はクリアしたいが、
+        // ただし新しい調査対象（title未定時など）の場合はクリアしたいが、
         // 既存の仕組みだと判別しづらいので、tagがあれば更新、なければ維持とする
         const nextArea = areaData || s.currentMissionArea;
 
@@ -177,8 +177,8 @@ export default function App() {
       { id: Date.now() + 1, role: 'ai', type: 'text', text: randomGreeting }
     ];
 
-    // 最初の定型文の最初の一部などをタイトルにする（後でミッション生成時に上書きされる想定）
-    const initialTitle = "ミッション準備中...";
+    // 最初の定型文の最初の一部などをタイトルにする（後で調査生成時に上書きされる想定）
+    const initialTitle = "調査対象を選定中...";
 
     const newSession = { id: newId, title: initialTitle, history: initialHistory, currentMission: '', isCleared: false };
     setSessions(prev => [newSession, ...prev]);
@@ -294,9 +294,13 @@ export default function App() {
             // currentSessionIdがない場合は空画面に近いものを出すか、強制Start
             !currentSessionId ? (
               <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center p-4 text-earth-800">
-                <p className="mb-4">新しいミッション履歴を作成してください</p>
-                <button onClick={handleNewSession} className="px-6 py-3 bg-earth-800 text-white rounded-xl shadow-md font-bold hover:bg-earth-900 transition-colors">
-                  新しいミッションをはじめる
+                <p className="mb-4">新しい調査記録を作成してください</p>
+                <button
+                  onClick={handleNewSession}
+                  className="flex items-center gap-2 px-6 py-3 bg-earth-800 text-cream-50 rounded-lg hover:bg-earth-900 transition-colors shadow-md font-bold"
+                >
+                  <Plus size={20} />
+                  新しい調査を開始する
                 </button>
               </div>
             ) : (

@@ -104,7 +104,7 @@ export default function MapInteractive({ center = [35.681236, 139.767125], zoom 
                     >
                         <Popup>
                             <div className="text-center">
-                                <p className="font-bold mb-1">ミッションエリア (半径{missionArea.r}m)</p>
+                                <p className="font-bold mb-1">調査エリア (半径{missionArea.r}m)</p>
                                 <a
                                     href={`https://www.google.com/maps/search/?api=1&query=${missionArea.lat},${missionArea.lng}`}
                                     target="_blank"

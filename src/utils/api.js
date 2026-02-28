@@ -34,7 +34,7 @@ const formatHistory = (chatHistory) => {
 };
 
 // API呼び出し用のラッパーモジュール
-export const generateMission = async (apiKey, modelName = 'gemini-2.5-flash', systemInstruction, chatHistory = [], newText = "今日のミッションをお願いします。") => {
+export const generateMission = async (apiKey, modelName = 'gemini-2.5-flash', systemInstruction, chatHistory = [], newText = "今日の調査対象をお願いします。") => {
   if (!apiKey) throw new Error("APIキーが設定されていません");
 
   const ai = new GoogleGenAI({ apiKey: apiKey });
@@ -60,7 +60,7 @@ export const generateMission = async (apiKey, modelName = 'gemini-2.5-flash', sy
     return response.text;
   } catch (error) {
     console.error("Mission Generation Error:", error);
-    throw new Error(error.message || "ミッションの生成に失敗しました");
+    throw new Error(error.message || "調査依頼の生成に失敗しました");
   }
 };
 
@@ -116,7 +116,7 @@ export const evaluateReport = async (apiKey, modelName = 'gemini-2.5-flash', sys
             mimeType: mimeType
           }
         },
-        { text: `ミッション内容：「${missionText}」\n\n${newText}\n\nこの写真がミッションを満たしているか判定してください。` }
+        { text: `調査対象：「${missionText}」\n\n${newText}\n\nこの写真が調査対象を満たしているか判定してください。` }
       ]
     };
 

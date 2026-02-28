@@ -227,7 +227,7 @@ export default function SettingsPath({
                     {/* Prompt 1 */}
                     <div className="space-y-1">
                         <div className="flex justify-between items-end">
-                            <label htmlFor="prompt1" className="block text-sm font-semibold text-earth-800">ミッション生成ルール (Role 1)</label>
+                            <label htmlFor="prompt1" className="block text-sm font-semibold text-earth-800">調査依頼ルール (Role 1)</label>
                             <button type="button" onClick={() => setPrompt1(APP_CONFIG.defaultPrompt1)} className="text-xs text-blue-600 underline">デフォルトに戻す</button>
                         </div>
                         <textarea
@@ -281,7 +281,7 @@ export default function SettingsPath({
                             <label htmlFor="destinationList" className="block text-sm font-semibold text-earth-800">目的地候補リスト (実在確認用)</label>
                             <button type="button" onClick={() => setDestinationList(APP_CONFIG.defaultDestinationList)} className="text-xs text-blue-600 underline">デフォルトに戻す</button>
                         </div>
-                        <p className="text-xs text-earth-600 mb-2">AIが実在しない地名を作成するのを防ぐため、ここに入力されたリストの中からミッションの目的地を生成します。改行区切りで入力してください。</p>
+                        <p className="text-xs text-earth-600 mb-2">AIが実在しない地名を作成するのを防ぐため、ここに入力されたリストの中から調査の目的地を生成します。改行区切りで入力してください。</p>
                         <textarea
                             id="destinationList"
                             name="destinationList"
