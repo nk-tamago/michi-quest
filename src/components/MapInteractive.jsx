@@ -87,7 +87,7 @@ export default function MapInteractive({ center = [35.681236, 139.767125], zoom 
                 <LocateControl onUpdateLocation={onUpdateLocation} />
 
                 {/* Mission Area (Circle) */}
-                {missionArea && (
+                {missionArea && typeof missionArea.lat === 'number' && typeof missionArea.lng === 'number' && !isNaN(missionArea.lat) && !isNaN(missionArea.lng) && (
                     <Circle
                         center={[missionArea.lat, missionArea.lng]}
                         radius={missionArea.r}
