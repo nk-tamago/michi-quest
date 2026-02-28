@@ -484,6 +484,7 @@ export default function ChatThread({
                                         avatarJoy={msg.role === 'ai' ? avatarJoy : null}
                                         avatarDisgust={msg.role === 'ai' ? avatarDisgust : null}
                                         isUser={msg.role === 'user'}
+                                        timestamp={msg.id}
                                     />
                                 </>
                             )}
