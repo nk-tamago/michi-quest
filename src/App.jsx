@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
+import { Plus } from 'lucide-react';
 import Settings from './pages/Settings';
 import ChatThread from './pages/ChatThread';
 import MapInteractive from './components/MapInteractive';
@@ -297,7 +298,7 @@ export default function App() {
                 <p className="mb-4">新しい調査記録を作成してください</p>
                 <button
                   onClick={handleNewSession}
-                  className="flex items-center gap-2 px-6 py-3 bg-earth-800 text-cream-50 rounded-lg hover:bg-earth-900 transition-colors shadow-md font-bold"
+                  className="flex items-center gap-2 px-6 py-3 bg-earth-800 text-white rounded-xl hover:bg-earth-900 transition-colors shadow-md font-bold"
                 >
                   <Plus size={20} />
                   新しい調査を開始する
