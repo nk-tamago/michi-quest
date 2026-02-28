@@ -56,7 +56,7 @@ function LocateControl({ onUpdateLocation }) {
     };
 
     return (
-        <div className="absolute bottom-6 right-4" style={{ zIndex: 1000 }}>
+        <div className="absolute bottom-20 md:bottom-10 right-4" style={{ zIndex: 1000 }}>
             <button
                 onClick={(e) => {
                     e.preventDefault();
