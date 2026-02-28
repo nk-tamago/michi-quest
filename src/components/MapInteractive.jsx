@@ -74,15 +74,22 @@ function LocateControl({ onUpdateLocation }) {
 }
 
 export default function MapInteractive({ center = [35.681236, 139.767125], zoom = 13, missionArea, userLocation, onUpdateLocation, markers = [] }) {
+    // 座標が不正（undefined, NaNなど）な場合はデフォルトを適用する安全なcenterを算出
+    const isCenterValid = Array.isArray(center) && center.length === 2 &&
+        typeof center[0] === 'number' && !isNaN(center[0]) &&
+        typeof center[1] === 'number' && !isNaN(center[1]);
+
+    const safeCenter = isCenterValid ? center : [35.681236, 139.767125];
+
     return (
         <div className="h-full w-full relative z-0">
-            <MapContainer center={center} zoom={zoom} scrollWheelZoom={true} className="h-full w-full" style={{ minHeight: '300px' }}>
+            <MapContainer center={safeCenter} zoom={zoom} scrollWheelZoom={true} className="h-full w-full" style={{ minHeight: '300px' }}>
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
 
-                <MapUpdater center={center} zoom={zoom} />
+                <MapUpdater center={safeCenter} zoom={zoom} />
 
                 <LocateControl onUpdateLocation={onUpdateLocation} />
 
