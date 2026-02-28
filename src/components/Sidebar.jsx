@@ -96,7 +96,11 @@ export default function Sidebar({
                                     <MessageSquare size={16} className="flex-shrink-0" />
                                     <div className="truncate flex-1 flex flex-col justify-center gap-0.5">
                                         <div className="flex items-center gap-2">
-                                            <div className="text-sm font-medium truncate">{session.title || 'ミッション開始前'}</div>
+                                            <div className="text-sm font-medium truncate">
+                                                {session.title === 'ミッション準備中...' && session.currentMissionArea?.name
+                                                    ? `📍${session.currentMissionArea.name}`
+                                                    : (session.title || 'ミッション準備中...')}
+                                            </div>
                                             {session.isCleared && (
                                                 <span
                                                     className="text-[10px] font-black italic bg-gradient-to-r from-red-600 to-orange-500 text-white px-1.5 py-0.5 rounded shadow-sm border border-red-400/50 tracking-wider flex-shrink-0"

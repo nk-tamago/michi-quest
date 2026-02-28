@@ -125,7 +125,11 @@ export default function App() {
         }
 
         let title = s.title;
-        if (!title && missionValue) {
+        const isInitialTitle = !title || title === "ミッション準備中...";
+
+        if (areaData && areaData.name && isInitialTitle) {
+          title = `📍${areaData.name}`;
+        } else if (isInitialTitle && missionValue) {
           const cleanText = missionValue
             .replace(/\[Emotion:[\s\S]*?\]/ig, '')
             .replace(/\[AREA:[\s\S]*?\]/ig, '')
@@ -142,7 +146,7 @@ export default function App() {
           ...s,
           currentMission: missionValue,
           currentMissionArea: nextArea,
-          title: title || ''
+          title: title || s.title || ''
         };
       }
       return s;
