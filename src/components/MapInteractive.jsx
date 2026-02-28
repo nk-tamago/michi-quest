@@ -74,12 +74,14 @@ function LocateControl({ onUpdateLocation }) {
 }
 
 export default function MapInteractive({ center = [35.681236, 139.767125], zoom = 13, missionArea, userLocation, onUpdateLocation, markers = [] }) {
-    // 座標が不正（undefined, NaNなど）な場合はデフォルトを適用する安全なcenterを算出
-    const isCenterValid = Array.isArray(center) && center.length === 2 &&
-        typeof center[0] === 'number' && !isNaN(center[0]) &&
-        typeof center[1] === 'number' && !isNaN(center[1]);
+    // 座標が不正（undefined, NaNなど）か判定するヘルパー
+    const isValidCoordinate = (coord) => {
+        return Array.isArray(coord) && coord.length === 2 &&
+            typeof coord[0] === 'number' && !isNaN(coord[0]) &&
+            typeof coord[1] === 'number' && !isNaN(coord[1]);
+    };
 
-    const safeCenter = isCenterValid ? center : [35.681236, 139.767125];
+    const safeCenter = isValidCoordinate(center) ? center : [35.681236, 139.767125];
 
     return (
         <div className="h-full w-full relative z-0">
@@ -117,7 +119,7 @@ export default function MapInteractive({ center = [35.681236, 139.767125], zoom 
                 )}
 
                 {/* User Location */}
-                {userLocation && (
+                {userLocation && isValidCoordinate(userLocation) && (
                     <Marker position={userLocation} icon={new L.Icon({
                         iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
                         shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -132,6 +134,8 @@ export default function MapInteractive({ center = [35.681236, 139.767125], zoom 
 
                 {/* Other Markers */}
                 {markers.map((marker, idx) => {
+                    if (!marker.position || !isValidCoordinate(marker.position)) return null;
+
                     let customIcon = DefaultIcon;
 
                     if (marker.image) {
