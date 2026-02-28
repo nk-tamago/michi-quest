@@ -50,6 +50,7 @@ export default function ChatThread({
     // クリア演出用ステート
     const [showClearAnimation, setShowClearAnimation] = useState(false);
     const [clearedTitle, setClearedTitle] = useState(null);
+    const [pendingClearResult, setPendingClearResult] = useState(null);
 
     // モード切り替え時にリプレイを初期化
     useEffect(() => {
@@ -57,6 +58,7 @@ export default function ChatThread({
             setReplayIndex(0);
             setIsPlaying(false);
             setShowClearAnimation(false);
+            setPendingClearResult(null);
         }
     }, [isReplayMode, currentMission]);
 
@@ -307,9 +309,8 @@ export default function ChatThread({
             if (earnedScore !== null && earnedScore >= 60) {
                 if (onMissionCleared) onMissionCleared();
                 if (!isReplayMode) {
-                    setClearedTitle(earnedTitle);
-                    setShowClearAnimation(true);
-                    setTimeout(() => setShowClearAnimation(false), 5000); // 5秒後に消す
+                    // ここでは即時アニメーションを発火せず、保留状態にする
+                    setPendingClearResult({ title: earnedTitle });
                 }
             }
 
@@ -480,6 +481,24 @@ export default function ChatThread({
                         {error}
                     </div>
                 ) : null}
+
+                {/* 手動トリガー式のクリア演出ボタン */}
+                {pendingClearResult && !isReplayMode && (
+                    <div className="flex justify-center mt-6 mb-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                        <Button
+                            onClick={() => {
+                                setClearedTitle(pendingClearResult.title);
+                                setShowClearAnimation(true);
+                                setPendingClearResult(null);
+                                setTimeout(() => setShowClearAnimation(false), 5000);
+                            }}
+                            className="bg-yellow-500 hover:bg-yellow-600 shadow-[0_0_15px_rgba(234,179,8,0.5)] text-white font-bold py-3 px-8 rounded-full shadow-lg border-2 border-yellow-300 transform transition-transform hover:scale-105 flex items-center gap-2"
+                        >
+                            🎉 リザルトを見る！
+                        </Button>
+                    </div>
+                )}
+
                 <div ref={chatEndRef} />
             </div>
 
