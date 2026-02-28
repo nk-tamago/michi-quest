@@ -125,9 +125,10 @@ export default function App() {
         }
 
         let title = s.title;
-        const isInitialTitle = !title || title === "ミッション準備中...";
+        const isInitialTitle = (!title || title === "ミッション準備中...");
 
-        if (areaData && areaData.name && isInitialTitle) {
+        if (areaData && areaData.name) {
+          // ミッションが変更された場合はタイトルも更新する
           title = `📍${areaData.name}`;
         } else if (isInitialTitle && missionValue) {
           const cleanText = missionValue

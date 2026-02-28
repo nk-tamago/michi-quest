@@ -364,10 +364,36 @@ export default function ChatThread({
         setInputText('');
 
         try {
-            const finalPrompt = basePrompt + "\n\n" + prompt3;
+            const finalPrompt = basePrompt + "\n\n" + prompt3 + `\n\n【システムデータ】\n現在進行中のミッション：${currentMission}`;
             const replyText = await chatWithOperator(apiKey, aiModel, finalPrompt, chatHistory, currentInput);
 
-            const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'text', text: replyText };
+            // AREAタグからnameを抽出して現在地を更新する処理
+            const areaMatch = replyText.match(/\[AREA:\s*({[\s\S]*?})\]/);
+            let displayMsg = replyText;
+
+            if (areaMatch) {
+                try {
+                    const areaData = JSON.parse(areaMatch[1]);
+                    if (areaData.name) {
+                        // 実在チェック
+                        const exists = await verifyLocationExists(areaData.name);
+                        if (exists) {
+                            setCurrentMission(replyText); // App.jsx側でミッション情報を更新する
+                            console.log(`Mission updated to ${areaData.name}`);
+                        } else {
+                            console.warn(`Location ${areaData.name} not found. Ignored AREA tag.`);
+                        }
+                    } else {
+                        setCurrentMission(replyText); // nameが無い場合でもAREA情報があれば更新
+                    }
+                } catch (e) {
+                    console.error("Failed to parse AREA tag in operator chat", e);
+                }
+                // チャット上はAREAタグを非表示にする
+                displayMsg = displayMsg.replace(/\[AREA:\s*({[\s\S]*?})\]/ig, '').trim();
+            }
+
+            const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'text', text: displayMsg };
             setChatHistory(prev => [...prev, aiMsg]);
         } catch (err) {
             setError(err.message || "通信エラーが発生しました");
