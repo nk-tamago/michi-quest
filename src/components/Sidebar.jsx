@@ -42,7 +42,7 @@ export default function Sidebar({
                 md:relative md:translate-x-0 md:h-full`}
             >
                 <div className="p-4 flex justify-between items-center border-b border-earth-900/50">
-                    <h2 className="font-bold tracking-wide">ミッション履歴</h2>
+                    <h2 className="font-bold tracking-wide">調査記録</h2>
                     <button onClick={onClose} className="p-1 md:hidden hover:bg-earth-900/50 rounded-full" aria-label="閉じる">
                         <X size={20} />
                     </button>
@@ -75,7 +75,7 @@ export default function Sidebar({
                         onClick={() => { onNewSession(); onClose(); }}
                         className="w-full flex items-center justify-center gap-2 bg-earth-100 text-earth-900 py-3 rounded-xl font-bold hover:bg-white transition-colors shadow-sm"
                     >
-                        <Plus size={20} /> 新しいミッションへ
+                        <Plus size={20} /> 新しい調査を開始
                     </button>
                 </div>
 
@@ -97,14 +97,14 @@ export default function Sidebar({
                                     <div className="truncate flex-1 flex flex-col justify-center gap-0.5">
                                         <div className="flex items-center gap-2">
                                             <div className="text-sm font-medium truncate">
-                                                {session.title === 'ミッション準備中...' && session.currentMissionArea?.name
+                                                {session.title === '調査対象を選定中...' && session.currentMissionArea?.name
                                                     ? `📍${session.currentMissionArea.name}`
-                                                    : (session.title || 'ミッション準備中...')}
+                                                    : (session.title || '調査対象を選定中...')}
                                             </div>
                                             {session.isCleared && (
                                                 <span
                                                     className="text-[10px] font-black italic bg-gradient-to-r from-red-600 to-orange-500 text-white px-1.5 py-0.5 rounded shadow-sm border border-red-400/50 tracking-wider flex-shrink-0"
-                                                    title="ミッションクリア済み"
+                                                    title="調査完了済み"
                                                     aria-label="クリア済み"
                                                 >
                                                     CLEAR!
@@ -158,7 +158,7 @@ export default function Sidebar({
                             {titlesCollection.length === 0 ? (
                                 <div className="text-center text-earth-500 py-8">
                                     <p>まだ称号を獲得していません。</p>
-                                    <p className="text-sm mt-2">ミッションをクリアして名誉ある称号を手に入れよう！</p>
+                                    <p className="text-sm mt-2">調査を完了して名誉ある称号を手に入れよう！</p>
                                 </div>
                             ) : (
                                 titlesCollection.map((item, idx) => (
