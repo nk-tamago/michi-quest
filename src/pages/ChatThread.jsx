@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ChatBubble from '../components/ChatBubble';
 import Button from '../components/Button';
-import { Camera, Send, Loader2, Map as MapIcon, RefreshCcw, Award, Play, Pause, ChevronLeft, ChevronRight, X, Image as ImageIcon } from 'lucide-react';
+import { Camera, Send, Loader2, Map as MapIcon, RefreshCcw, Award, Play, Pause, ChevronLeft, ChevronRight, X, Image as ImageIcon, Star } from 'lucide-react';
 import { generateMission, evaluateReport, verifyLocationExists, chatWithOperator } from '../utils/api';
 import { resizeImage } from '../utils/imageUtils';
 import { getGPSFromImage } from '../utils/exifUtils';
@@ -403,12 +403,17 @@ export default function ChatThread({
             };
 
             const newMessages = [aiMsg];
+            if (earnedGrade !== null) {
+                newMessages.push({
+                    id: Date.now() + 2,
+                    role: 'system',
+                    type: 'evaluation',
+                    grade: earnedGrade,
+                    title: earnedTitle
+                });
+            }
             if (announceMsg) {
-                newMessages.push({ id: Date.now() + 2, role: 'ai', type: 'text', text: announceMsg });
-            } else if (earnedGrade !== null && earnedGrade >= 2) {
-                let sysText = `今回の評価は GRADE: ${earnedGrade} だ。`;
-                if (earnedTitle) sysText += ` 新たな知見「${earnedTitle}」をフィールドノートに記録した。`;
-                newMessages.push({ id: Date.now() + 2, role: 'ai', type: 'text', text: sysText.trim() });
+                newMessages.push({ id: Date.now() + 3, role: 'ai', type: 'text', text: announceMsg });
             }
 
             setChatHistory(prev => [...prev, ...newMessages]);
@@ -471,6 +476,7 @@ export default function ChatThread({
             }
 
             // 自発写真によるINSIGHTタグ抽出
+            let spontaneousTitle = null;
             if (withImage) {
                 const insightMatch = replyText.match(/\[INSIGHT:\s*({[\s\S]*?}|[^\]]*)\]/i);
                 if (insightMatch) {
@@ -485,6 +491,7 @@ export default function ChatThread({
                                     source: 'spontaneous',
                                     date: new Date().toISOString()
                                 });
+                                spontaneousTitle = insightData.title;
                                 if (onTrustChanged) onTrustChanged(5); // 有益なら信頼度+5
                             }
                         } catch (e) {
@@ -505,7 +512,16 @@ export default function ChatThread({
                 .trim();
 
             const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'text', text: displayMsg };
-            setChatHistory(prev => [...prev, aiMsg]);
+            const newMessages = [aiMsg];
+            if (spontaneousTitle) {
+                newMessages.push({
+                    id: Date.now() + 2,
+                    role: 'system',
+                    type: 'insight',
+                    title: spontaneousTitle
+                });
+            }
+            setChatHistory(prev => [...prev, ...newMessages]);
         } catch (err) {
             setError(err.message || "通信エラーが発生しました");
             setChatHistory(prev => prev.filter(msg => msg.id !== userMsg.id));
@@ -588,12 +604,50 @@ export default function ChatThread({
                     displayedHistory.map((msg) => (
                         <div key={msg.id} className="w-full">
                             {msg.role === 'system' ? (
-                                <div className="flex justify-center my-4">
-                                    <div className="bg-earth-200 text-earth-800 px-4 py-2 rounded-full text-sm font-bold shadow-sm flex items-center gap-2 border border-earth-300">
-                                        <Award size={18} className="text-yellow-600" />
-                                        {msg.text}
+                                msg.type === 'evaluation' ? (
+                                    <div className="flex justify-center my-6 animate-fade-in-up">
+                                        <div className="bg-gradient-to-br from-[#4E342E] to-[#3E2723] border border-[#8D6E63]/40 p-5 rounded-xl shadow-[0_10px_25px_rgba(0,0,0,0.5)] max-w-sm w-full relative overflow-hidden">
+                                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-600 via-yellow-400 to-yellow-600"></div>
+                                            <div className="text-center">
+                                                <div className="text-amber-100/60 text-xs font-bold tracking-widest mb-2 font-serif border-b border-[#8D6E63]/0 pb-1">ミチ・ノマの評価</div>
+                                                <div className="flex justify-center gap-2 mb-4 mt-2">
+                                                    {[1, 2, 3].map(star => (
+                                                        <Star
+                                                            key={star}
+                                                            size={48}
+                                                            className={`transform transition-all duration-500 ease-out ${star <= msg.grade ? 'text-yellow-400 drop-shadow-[0_0_12px_rgba(250,204,21,0.8)] scale-110' : 'text-[#8D6E63]/30 scale-90'}`}
+                                                            fill={star <= msg.grade ? 'currentColor' : 'none'}
+                                                            strokeWidth={star <= msg.grade ? 1 : 1.5}
+                                                        />
+                                                    ))}
+                                                </div>
+                                                {msg.title && (
+                                                    <div className="mt-4 pt-4 border-t border-[#8D6E63]/30 relative">
+                                                        <div className="text-xl font-bold text-amber-50 leading-snug font-serif break-words">『{msg.title}』</div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
+                                ) : msg.type === 'insight' ? (
+                                    <div className="flex justify-center my-4 animate-fade-in-up">
+                                        <div className="bg-[#4E342E] border border-amber-900/50 text-amber-50 px-5 py-3 rounded-lg shadow-md flex items-center gap-3 relative overflow-hidden max-w-sm w-full">
+                                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-500"></div>
+                                            <Award size={24} className="text-yellow-500 drop-shadow flex-shrink-0" />
+                                            <div className="min-w-0">
+                                                <div className="text-[10px] text-amber-200/60 font-serif italic mb-0.5">Spontaneous discovery!</div>
+                                                <div className="text-sm font-serif font-bold truncate leading-tight">「{msg.title}」を記録</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex justify-center my-4 animate-fade-in">
+                                        <div className="bg-earth-200 text-earth-800 px-4 py-2 rounded-full text-sm font-bold shadow-sm flex items-center gap-2 border border-earth-300">
+                                            <Award size={18} className="text-yellow-600" />
+                                            {msg.text}
+                                        </div>
+                                    </div>
+                                )
                             ) : (
                                 <>
                                     {msg.type === 'image' && (
@@ -664,41 +718,45 @@ export default function ChatThread({
             </div>
 
             {/* Clear Animation Overlay */}
-            {showClearAnimation && (
-                <div
-                    className="absolute inset-0 z-50 flex flex-col items-center justify-center pointer-events-none bg-black/40 backdrop-blur-sm animate-in fade-in duration-500"
-                    role="status"
-                    aria-live="polite"
-                >
-                    <div className="transform -rotate-6 motion-safe:animate-bounce">
-                        <div className="text-center drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)]">
-                            <div className="text-5xl md:text-7xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-600 tracking-wider">
-                                MISSION
+            {
+                showClearAnimation && (
+                    <div
+                        className="absolute inset-0 z-50 flex flex-col items-center justify-center pointer-events-none bg-black/40 backdrop-blur-sm animate-in fade-in duration-500"
+                        role="status"
+                        aria-live="polite"
+                    >
+                        <div className="transform -rotate-6 motion-safe:animate-bounce">
+                            <div className="text-center drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)]">
+                                <div className="text-5xl md:text-7xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-600 tracking-wider">
+                                    MISSION
+                                </div>
+                                <div className="text-6xl md:text-9xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-orange-400 to-red-600 tracking-tighter leading-none mt-[-10px]">
+                                    CLEARED!
+                                </div>
                             </div>
-                            <div className="text-6xl md:text-9xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-orange-400 to-red-600 tracking-tighter leading-none mt-[-10px]">
-                                CLEARED!
-                            </div>
+                            {clearedTitle && (
+                                <div className="mt-8 mx-auto text-center bg-black/80 text-yellow-400 px-6 py-2 rounded-full font-bold shadow-[0_0_15px_rgba(234,179,8,0.5)] border border-yellow-500/50 transform scale-125">
+                                    👑 新たな知見「{clearedTitle}」を獲得！
+                                </div>
+                            )}
                         </div>
-                        {clearedTitle && (
-                            <div className="mt-8 mx-auto text-center bg-black/80 text-yellow-400 px-6 py-2 rounded-full font-bold shadow-[0_0_15px_rgba(234,179,8,0.5)] border border-yellow-500/50 transform scale-125">
-                                👑 新たな知見「{clearedTitle}」を獲得！
-                            </div>
-                        )}
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Exit Replay Button (Top Right) */}
-            {isReplayMode && (
-                <button
-                    onClick={() => { if (onExitReplay) onExitReplay(); setIsPlaying(false); }}
-                    className="absolute top-4 right-4 z-50 p-2 bg-earth-900/40 hover:bg-red-600/80 text-white rounded-full transition-colors backdrop-blur shadow-sm cursor-pointer"
-                    title="リプレイを終了 (Esc)"
-                    aria-label="リプレイを終了"
-                >
-                    <X size={20} className="opacity-75" />
-                </button>
-            )}
+            {
+                isReplayMode && (
+                    <button
+                        onClick={() => { if (onExitReplay) onExitReplay(); setIsPlaying(false); }}
+                        className="absolute top-4 right-4 z-50 p-2 bg-earth-900/40 hover:bg-red-600/80 text-white rounded-full transition-colors backdrop-blur shadow-sm cursor-pointer"
+                        title="リプレイを終了 (Esc)"
+                        aria-label="リプレイを終了"
+                    >
+                        <X size={20} className="opacity-75" />
+                    </button>
+                )
+            }
 
             {/* Input Area (Bottom Sticky - Same UI for both Modes) */}
             <div className={`absolute bottom-0 left-0 right-0 bg-earth-100 border-t p-2 sm:p-4 shadow-lg transition-colors ${isReplayMode ? 'border-amber-400' : 'border-earth-300'}`}>
@@ -807,6 +865,6 @@ export default function ChatThread({
                     </>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
