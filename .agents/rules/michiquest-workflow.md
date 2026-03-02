@@ -11,7 +11,7 @@ description: MichiQuestの開発の進め方。ドキュメント先行、段階
 このプロジェクト（MichiQuest）における開発・実装タスクを進める際は、以下のルールを**例外なく遵守**してください。
 
 ## 1. ドキュメント先行更新 (Doc-Driven Development)
-実装コードを書き始める前に、必ず `c:\Work\git\michi-quest\doc` ディレクトリ以下の関連する設計ドキュメントを更新してください。
+実装コードを書き始める前に、必ず `michi-quest\doc` ディレクトリ以下の関連する設計ドキュメントを更新してください。
 更新するファイル例：
 - `design.md` (インデックス)
 - `01_overview.md`
@@ -30,6 +30,6 @@ description: MichiQuestの開発の進め方。ドキュメント先行、段階
 コードを記述する際（特にWebデザインやReactの実装）は、以下の既存スキルルールを必ず読み込み、その内容に従ってください。
 
 - **Webデザイン全般**:
-  `c:\Work\git\michi-quest\.agents\skills\web-design-guidelines\SKILL.md` を厳守すること。
+  `michi-quest\.agents\skills\web-design-guidelines\SKILL.md` を厳守すること。
 - **Reactの実装・ベストプラクティス**:
-  `c:\Work\git\michi-quest\.agents\skills\vercel-react-best-practices\SKILL.md` （およびその配下のrules）を厳守すること。
+  `michi-quest\.agents\skills\vercel-react-best-practices\SKILL.md` （およびその配下のrules）を厳守すること。
