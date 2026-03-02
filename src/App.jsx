@@ -73,6 +73,7 @@ export default function App() {
 
   // リプレイモードのステート
   const [isReplayMode, setIsReplayMode] = useState(false);
+  const [isAutoReplayMode, setIsAutoReplayMode] = useState(false);
 
 
 
@@ -260,9 +261,10 @@ export default function App() {
           onSelectSession={(id) => setCurrentSessionId(id)}
           onNewSession={handleNewSession}
           onDeleteSession={handleDeleteSession}
-          onStartReplay={(id) => {
+          onStartReplay={(id, isAuto) => {
             setCurrentSessionId(id);
             setIsReplayMode(true);
+            setIsAutoReplayMode(isAuto);
             setCurrentTab('chat');
             setIsSidebarOpen(false);
           }}
@@ -326,7 +328,11 @@ export default function App() {
                 onMissionCleared={handleMissionCleared}
                 isSessionCleared={activeSession?.isCleared}
                 isReplayMode={isReplayMode}
-                onExitReplay={() => setIsReplayMode(false)}
+                isAutoReplayMode={isAutoReplayMode}
+                onExitReplay={() => {
+                  setIsReplayMode(false);
+                  setIsAutoReplayMode(false);
+                }}
               />
             )
           )}
