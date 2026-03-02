@@ -23,8 +23,9 @@ export default function ChatThread({
     setChatHistory,
     currentMission,
     setCurrentMission,
-    onScoreAdded,
-    onTitleAdded,
+    trustPrompt,
+    onTrustChanged,
+    onInsightAdded,
     onMissionCleared,
     isReplayMode = false,
     isAutoReplayMode = false,
@@ -189,7 +190,7 @@ export default function ChatThread({
 
         try {
             // ハルシネーション対策: 目的地リストがあればプロンプトに結合する
-            let finalPrompt = basePrompt + "\n\n" + prompt1;
+            let finalPrompt = basePrompt + "\n\n【ミチ・ノマの現在の態度（信頼度に基づく）】\n" + trustPrompt + "\n\n" + prompt1;
             const validDestinations = (destinationList || '').trim();
             if (validDestinations) {
                 finalPrompt += `\n\n【重要】調査の目的地は、必ず以下のリストの中から実在するものを1つだけ選んでください。\n${validDestinations}`;
@@ -316,87 +317,103 @@ export default function ChatThread({
 
         try {
             // パラメータ: apiKey, aiModel, systemInstruction, missionText, imageBase64, chatHistory, newText
-            const finalPrompt = basePrompt + "\n\n" + prompt2;
+            const finalPrompt = basePrompt + "\n\n【ミチ・ノマの現在の態度（信頼度に基づく）】\n" + trustPrompt + "\n\n" + prompt2;
             const resultText = await evaluateReport(apiKey, aiModel, finalPrompt, currentMission || "調査対象不明", imageBase64, chatHistory, currentInput);
 
-            // SCOREタグのパース
             let displayMsg = resultText;
-            let earnedScore = null;
+            let earnedGrade = null;
             let earnedTitle = null;
 
-            const scoreMatch = resultText.match(/\[SCORE:\s*(\d+)\]/i);
-            if (scoreMatch) {
-                const score = parseInt(scoreMatch[1], 10);
-                if (!isNaN(score) && onScoreAdded) {
-                    onScoreAdded(score);
-                    earnedScore = score;
+            // GRADEタグのパース
+            const gradeMatch = resultText.match(/\[GRADE:\s*(\d+)\]/i);
+            if (gradeMatch) {
+                const grade = parseInt(gradeMatch[1], 10);
+                if (!isNaN(grade)) {
+                    earnedGrade = grade;
+                    // 信頼度の増減ロジック
+                    let trustDiff = 0;
+                    if (grade === 3) trustDiff = 15;
+                    else if (grade === 2) trustDiff = 8;
+                    else if (grade === 1) trustDiff = -3;
+                    else trustDiff = -10;
+
+                    if (onTrustChanged) onTrustChanged(trustDiff);
                 }
-                // 表示用テキストからはSCOREタグを削除
-                displayMsg = displayMsg.replace(/\[SCORE:\s*\d+\]/ig, '').trim();
             }
 
-            // TITLEタグのパース
-            const titleMatch = resultText.match(/\[TITLE:\s*(.*?)\]/i);
-            if (titleMatch) {
-                const newTitle = titleMatch[1].trim();
-                // 60点未満の失敗時、または "なし" 指定の場合は称号を付与しない
-                if (earnedScore >= 60 && newTitle && newTitle !== 'なし' && newTitle !== '無し' && newTitle !== 'None' && onTitleAdded) {
-                    onTitleAdded({
-                        title: newTitle,
-                        date: new Date().toISOString(),
-                        mission: currentMission
-                    });
-                    earnedTitle = newTitle;
+            // INSIGHTタグのパース
+            const insightMatch = resultText.match(/\[INSIGHT:\s*({[\s\S]*?}|[^\]]*)\]/i);
+            if (insightMatch) {
+                const insightStr = insightMatch[1].trim();
+                if (insightStr !== 'なし' && insightStr !== '無し' && insightStr !== 'None' && earnedGrade >= 1) {
+                    try {
+                        const insightData = JSON.parse(insightStr);
+                        if (onInsightAdded && insightData.title) {
+                            onInsightAdded({
+                                ...insightData,
+                                grade: earnedGrade,
+                                source: 'mission',
+                                date: new Date().toISOString()
+                            });
+                            earnedTitle = insightData.title;
+                        }
+                    } catch (e) {
+                        console.error("Failed to parse INSIGHT data in evaluateReport", e);
+                    }
                 }
-                // 表示用テキストからはTITLEタグを削除
-                displayMsg = displayMsg.replace(/\[TITLE:\s*.*?\]/ig, '').trim();
             }
 
-            // クリア判定と演出のトリガー
-            if (earnedScore !== null && earnedScore >= 60) {
+            // AREAタグの処理 (再調査等で目的地変更指示があった場合)
+            const areaMatch = resultText.match(/\[AREA:\s*({[\s\S]*?})\]/);
+            if (areaMatch) {
+                setCurrentMission(resultText); // AREAタグが含まれる文字列を渡すとApp.jsx側で新しい目的地として更新される
+            }
+
+            // クリア判定と演出のトリガー (GRADE 2以上で合格)
+            if (earnedGrade !== null && earnedGrade >= 2) {
                 if (onMissionCleared) onMissionCleared();
+                setCurrentMission(""); // ミッションクリア後はフリー状態に戻す（自発写真や雑談を可能にするため）
                 if (!isReplayMode) {
-                    // ここでは即時アニメーションを発火せず、保留状態にする
                     setPendingClearResult({ title: earnedTitle });
                 }
             }
 
             // ANNOUNCEタグのパース
             let announceMsg = null;
-            const announceMatch = resultText.match(/\[ANNOUNCE:\s*(.*?)\]/i);
+            const announceMatch = resultText.match(/\[ANNOUNCE:([\s\S]*?)\]/i);
             if (announceMatch) {
                 announceMsg = announceMatch[1].trim();
-                // 表示用テキストからはANNOUNCEタグを削除
-                displayMsg = displayMsg.replace(/\[ANNOUNCE:\s*.*?\]/ig, '').trim();
             }
+
+            // 全タグのクリーンアップ
+            displayMsg = displayMsg.replace(/\[Emotion:[^\]]*\]/ig, '')
+                .replace(/\[GRADE:[^\]]*\]/ig, '')
+                .replace(/\[INSIGHT:\s*({[\s\S]*?}|[^\]]*)\]/ig, '')
+                .replace(/\[AREA:\s*({[\s\S]*?})\]/ig, '')
+                .replace(/\[ANNOUNCE:([\s\S]*?)\]/ig, '')
+                .trim();
 
             const aiMsg = {
                 id: Date.now() + 1,
                 role: 'ai',
                 type: 'text',
                 text: displayMsg,
-                // リプレイ時のクリア演出トリガー用情報
-                isClearMessage: (earnedScore !== null && earnedScore >= 60),
+                isClearMessage: (earnedGrade !== null && earnedGrade >= 2),
                 clearedTitle: earnedTitle
             };
 
-            // スコア・称号の発表メッセージをAIの会話として生成
             const newMessages = [aiMsg];
             if (announceMsg) {
                 newMessages.push({ id: Date.now() + 2, role: 'ai', type: 'text', text: announceMsg });
-            } else if (earnedScore !== null || earnedTitle !== null) {
-                // Fallback (AI会話トーンにあわせた最低限の報告)
-                let sysText = "";
-                if (earnedScore !== null) sysText += `今回のスコアは ${earnedScore}pt だ！`;
-                if (earnedTitle !== null) sysText += ` 新たな称号「${earnedTitle}」を授ける！`;
-                if (sysText) newMessages.push({ id: Date.now() + 2, role: 'ai', type: 'text', text: sysText.trim() });
+            } else if (earnedGrade !== null && earnedGrade >= 2) {
+                let sysText = `今回の評価は GRADE: ${earnedGrade} だ。`;
+                if (earnedTitle) sysText += ` 新たな知見「${earnedTitle}」をフィールドノートに記録した。`;
+                newMessages.push({ id: Date.now() + 2, role: 'ai', type: 'text', text: sysText.trim() });
             }
 
             setChatHistory(prev => [...prev, ...newMessages]);
-            // Depending on outcome, we might clear currentMission here
         } catch (err) {
             setError(err.message || "予期せぬエラーが発生しました");
-            // Remove user msg on fail
             setChatHistory(prev => prev.filter(msg => msg.id !== userMsg.id));
             setInputText(savedInputText);
             setImagePreview(savedImagePreview);
@@ -407,46 +424,85 @@ export default function ChatThread({
         }
     };
 
-    const handleOperatorChat = async () => {
+    const handleOperatorChat = async (withImage = false) => {
         if (!apiKey) return;
         setLoading(true);
         setError('');
 
-        const currentInput = inputText || '進捗どう？';
-        const userMsg = { id: Date.now(), role: 'user', type: 'text', text: currentInput };
+        const currentInput = inputText || (withImage ? 'この写真を見て！' : '進捗どう？');
+        const userMsg = {
+            id: Date.now(),
+            role: 'user',
+            type: withImage ? 'image' : 'text',
+            text: currentInput,
+            ...(withImage && { image: imageBase64, location: imageLocation })
+        };
         const savedInput = inputText;
+        const savedImagePreview = imagePreview;
+        const savedImageBase64 = imageBase64;
+        const savedImageLocation = imageLocation;
+
         setChatHistory(prev => [...prev, userMsg]);
         setInputText('');
+        if (withImage) handleClearImage();
 
         try {
-            const finalPrompt = basePrompt + "\n\n" + prompt3 + `\n\n【システムデータ】\n現在進行中の調査対象：${currentMission}`;
-            const replyText = await chatWithOperator(apiKey, aiModel, finalPrompt, chatHistory, currentInput);
+            const finalPrompt = basePrompt + "\n\n【ミチ・ノマの現在の態度（信頼度に基づく）】\n" + trustPrompt + "\n\n" + prompt3 + (currentMission ? `\n\n【システムデータ】\n現在進行中の調査対象：${currentMission}` : "");
+            const replyText = await chatWithOperator(apiKey, aiModel, finalPrompt, chatHistory, currentInput, withImage ? imageBase64 : null);
 
-            // AREAタグからnameを抽出して現在地を更新する処理
-            const areaMatch = replyText.match(/\[AREA:\s*({[\s\S]*?})\]/);
             let displayMsg = replyText;
 
+            // AREAタグ抽出
+            const areaMatch = replyText.match(/\[AREA:\s*({[\s\S]*?})\]/);
             if (areaMatch) {
                 try {
                     const areaData = JSON.parse(areaMatch[1]);
                     if (areaData.name) {
-                        // 実在チェック
                         const exists = await verifyLocationExists(areaData.name);
                         if (exists) {
-                            setCurrentMission(replyText); // App.jsx側で調査情報を更新する
-                            console.log(`Mission updated to ${areaData.name}`);
-                        } else {
-                            console.warn(`Location ${areaData.name} not found. Ignored AREA tag.`);
+                            setCurrentMission(replyText);
                         }
                     } else {
-                        setCurrentMission(replyText); // nameが無い場合でもAREA情報があれば更新
+                        setCurrentMission(replyText);
                     }
                 } catch (e) {
                     console.error("Failed to parse AREA tag in operator chat", e);
                 }
-                // チャット上はAREAタグを非表示にする
-                displayMsg = displayMsg.replace(/\[AREA:\s*({[\s\S]*?})\]/ig, '').trim();
             }
+
+            // 自発写真によるINSIGHTタグ抽出
+            if (withImage) {
+                const insightMatch = replyText.match(/\[INSIGHT:\s*({[\s\S]*?}|[^\]]*)\]/i);
+                if (insightMatch) {
+                    const insightStr = insightMatch[1].trim();
+                    if (insightStr !== 'なし' && insightStr !== '無し' && insightStr !== 'None') {
+                        try {
+                            const insightData = JSON.parse(insightStr);
+                            if (onInsightAdded && insightData.title) {
+                                onInsightAdded({
+                                    ...insightData,
+                                    grade: null, // 自発写真なのでGRADEはつかない
+                                    source: 'spontaneous',
+                                    date: new Date().toISOString()
+                                });
+                                if (onTrustChanged) onTrustChanged(5); // 有益なら信頼度+5
+                            }
+                        } catch (e) {
+                            console.error("Failed to parse INSIGHT data in operator chat", e);
+                        }
+                    } else {
+                        if (onTrustChanged) onTrustChanged(-2); // 無益だった場合は信頼度を少し下げる
+                    }
+                }
+            }
+
+            // 全タグのクリーンアップ (withImageに関わらず)
+            displayMsg = displayMsg.replace(/\[Emotion:[^\]]*\]/ig, '')
+                .replace(/\[GRADE:[^\]]*\]/ig, '')
+                .replace(/\[INSIGHT:\s*({[\s\S]*?}|[^\]]*)\]/ig, '')
+                .replace(/\[AREA:\s*({[\s\S]*?})\]/ig, '')
+                .replace(/\[ANNOUNCE:([\s\S]*?)\]/ig, '')
+                .trim();
 
             const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'text', text: displayMsg };
             setChatHistory(prev => [...prev, aiMsg]);
@@ -454,6 +510,11 @@ export default function ChatThread({
             setError(err.message || "通信エラーが発生しました");
             setChatHistory(prev => prev.filter(msg => msg.id !== userMsg.id));
             setInputText(savedInput);
+            if (withImage) {
+                setImagePreview(savedImagePreview);
+                setImageBase64(savedImageBase64);
+                setImageLocation(savedImageLocation);
+            }
         } finally {
             setLoading(false);
         }
@@ -474,7 +535,13 @@ export default function ChatThread({
 
         if (loading || isProcessingImage) return;
         if (imageBase64) {
-            handleReportMission();
+            if (currentMission) {
+                // ミッション実行中は報告として扱う
+                handleReportMission();
+            } else {
+                // フリー状態の時は自発写真として扱う
+                handleOperatorChat(true);
+            }
         } else if (inputText.trim()) {
             if (currentMission) {
                 handleOperatorChat();
@@ -614,7 +681,7 @@ export default function ChatThread({
                         </div>
                         {clearedTitle && (
                             <div className="mt-8 mx-auto text-center bg-black/80 text-yellow-400 px-6 py-2 rounded-full font-bold shadow-[0_0_15px_rgba(234,179,8,0.5)] border border-yellow-500/50 transform scale-125">
-                                👑 新たな称号「{clearedTitle}」を獲得！
+                                👑 新たな知見「{clearedTitle}」を獲得！
                             </div>
                         )}
                     </div>

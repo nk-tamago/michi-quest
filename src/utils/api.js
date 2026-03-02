@@ -64,7 +64,7 @@ export const generateMission = async (apiKey, modelName = 'gemini-2.5-flash', sy
   }
 };
 
-export const chatWithOperator = async (apiKey, modelName = 'gemini-2.5-flash', systemInstruction, chatHistory = [], newText = "進捗どう？") => {
+export const chatWithOperator = async (apiKey, modelName = 'gemini-2.5-flash', systemInstruction, chatHistory = [], newText = "進捗どう？", imageBase64 = null) => {
   if (!apiKey) throw new Error("APIキーが設定されていません");
 
   const ai = new GoogleGenAI({ apiKey: apiKey });
@@ -72,11 +72,23 @@ export const chatWithOperator = async (apiKey, modelName = 'gemini-2.5-flash', s
   try {
     const formattedHistory = formatHistory(chatHistory);
 
+    const userParts = [{ text: newText }];
+    if (imageBase64) {
+      const base64Data = imageBase64.split(',')[1];
+      const mimeType = imageBase64.split(';')[0].split(':')[1];
+      userParts.unshift({
+        inlineData: {
+          data: base64Data,
+          mimeType: mimeType
+        }
+      });
+    }
+
     const contents = [...formattedHistory];
     if (contents.length > 0 && contents[contents.length - 1].role === 'user') {
-      contents[contents.length - 1].parts[0].text += '\n\n' + newText;
+      contents[contents.length - 1].parts.push(...userParts);
     } else {
-      contents.push({ role: 'user', parts: [{ text: newText }] });
+      contents.push({ role: 'user', parts: userParts });
     }
 
     const response = await withTimeout(ai.models.generateContent({

@@ -1,12 +1,13 @@
 import React from 'react';
 import { X, Plus, MessageSquare, Trash2, Award, Play, StepForward } from 'lucide-react';
 
-const getRank = (score) => {
-    if (score < 100) return "★";
-    if (score < 500) return "★★";
-    if (score < 1000) return "★★★";
-    if (score < 3000) return "★★★★";
-    return "★★★★★";
+const getTrustEmoji = (score) => {
+    if (score < 0) return "😡";
+    if (score < 20) return "😒";
+    if (score < 50) return "😐";
+    if (score < 80) return "🙂";
+    if (score < 100) return "😊";
+    return "🥰";
 };
 
 export default function Sidebar({
@@ -18,13 +19,13 @@ export default function Sidebar({
     onNewSession,
     onDeleteSession,
     onStartReplay,
-    totalScore = 0,
-    titlesCollection = []
+    trustScore = 20,
+    fieldNotes = []
 }) {
     const [isCollectionOpen, setIsCollectionOpen] = React.useState(false);
 
-    // 直近の称号を取得
-    const latestTitle = titlesCollection.length > 0 ? titlesCollection[0].title : "初心者ライダー";
+    // 直近の知見を取得
+    const latestInsight = fieldNotes.length > 0 ? fieldNotes[0] : { title: "まだ知見がありません" };
     return (
         <>
             {/* Overlay for mobile */}
@@ -48,25 +49,26 @@ export default function Sidebar({
                     </button>
                 </div>
 
-                {/* スコア・称号表示エリア */}
                 <div className="p-4 bg-earth-900/30 border-b border-earth-900/50 relative">
                     <div className="flex justify-between items-center mb-1">
-                        <div className="text-xs text-earth-300">最新の称号</div>
+                        <div className="text-xs text-earth-300">最新の知見 (合計: {fieldNotes.length}件)</div>
                         <button
                             onClick={() => setIsCollectionOpen(true)}
                             className="text-xs text-blue-400 hover:text-blue-300 underline flex items-center gap-1"
                         >
-                            <Award size={12} />全称号を見る
+                            <Award size={12} />全知見を見る
                         </button>
                     </div>
                     <div className="flex flex-col gap-1 mb-2">
-                        <span className="text-lg font-bold bg-gradient-to-r from-yellow-400 to-amber-600 bg-clip-text text-transparent break-words leading-tight">
-                            {latestTitle}
+                        <span className="text-sm font-bold bg-gradient-to-r from-yellow-400 to-amber-600 bg-clip-text text-transparent break-words leading-tight">
+                            {latestInsight.title}
                         </span>
                     </div>
                     <div className="flex justify-between items-center text-sm border-t border-earth-700/50 pt-2 mt-2">
-                        <span className="text-earth-400 flex items-center gap-1">ランク {getRank(totalScore)}</span>
-                        <span className="font-mono font-bold text-earth-100">{totalScore} pt</span>
+                        <span className="text-earth-400">信頼度</span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-2xl" title={`Score: ${trustScore}`}>{getTrustEmoji(trustScore)}</span>
+                        </div>
                     </div>
                 </div>
 
@@ -158,33 +160,39 @@ export default function Sidebar({
                 </div>
             </div>
 
-            {/* Title Collection Modal */}
+            {/* Field Notes Modal */}
             {isCollectionOpen && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70">
                     <div className="bg-earth-100 rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col shadow-2xl overflow-hidden border border-earth-300">
                         <div className="p-4 bg-earth-800 text-earth-100 flex justify-between items-center">
-                            <h3 className="font-bold flex items-center gap-2"><Award size={20} className="text-yellow-500" /> 称号コレクション</h3>
+                            <h3 className="font-bold flex items-center gap-2"><Award size={20} className="text-yellow-500" /> フィールドノート</h3>
                             <button onClick={() => setIsCollectionOpen(false)} className="p-1 hover:bg-earth-700 rounded-full" aria-label="閉じる"><X size={20} /></button>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-earth-50">
-                            {titlesCollection.length === 0 ? (
+                            {fieldNotes.length === 0 ? (
                                 <div className="text-center text-earth-500 py-8">
-                                    <p>まだ称号を獲得していません。</p>
-                                    <p className="text-sm mt-2">調査を完了して名誉ある称号を手に入れよう！</p>
+                                    <p>まだ知見が蓄積されていません。</p>
+                                    <p className="text-sm mt-2">調査を行ってフィールドノートを充実させましょう。</p>
                                 </div>
                             ) : (
-                                titlesCollection.map((item, idx) => (
+                                fieldNotes.map((item, idx) => (
                                     <div key={idx} className="bg-white p-3 rounded-xl shadow-sm border border-earth-200">
-                                        <div className="font-bold text-lg text-earth-900 break-words mb-2 leading-tight">
-                                            {item.title}
-                                        </div>
-                                        <div className="flex justify-between items-end text-xs text-earth-500">
-                                            <span className="truncate max-w-[70%] text-earth-400" title={item.mission}>
-                                                獲得クエスト: {item.mission.length > 20 ? item.mission.slice(0, 20) + '...' : item.mission}
-                                            </span>
-                                            <span>
+                                        <div className="flex justify-between items-start mb-1">
+                                            <div className="bg-earth-800 text-white text-[10px] px-1.5 py-0.5 rounded">
+                                                {item.grade ? `GRADE: ${item.grade}` : "GRADE: -"}
+                                            </div>
+                                            <span className="text-[10px] text-earth-400">
                                                 {new Intl.DateTimeFormat('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(item.date))}
                                             </span>
+                                        </div>
+                                        <div className="font-bold text-sm text-earth-900 break-words mb-2 leading-tight">
+                                            {item.title}
+                                        </div>
+                                        <div className="text-xs text-earth-700 mb-2 whitespace-pre-wrap">
+                                            {item.description}
+                                        </div>
+                                        <div className="flex justify-start text-[10px] text-earth-500">
+                                            <span>📍{item.location}</span>
                                         </div>
                                     </div>
                                 ))

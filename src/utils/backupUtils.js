@@ -2,8 +2,8 @@ export const exportData = () => {
     try {
         const keysToExport = [
             'chatSessions',
-            'titlesCollection',
-            'totalScore',
+            'michi-field-notes',
+            'michi-trust-score',
             'aiAvatarData',
             'aiAvatarAngry',
             'aiAvatarJoy',
@@ -28,7 +28,7 @@ export const exportData = () => {
         const dataStr = JSON.stringify(exportObj, null, 2);
         const blob = new Blob([dataStr], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        
+
         const now = new Date();
         const yy = String(now.getFullYear());
         const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -36,7 +36,7 @@ export const exportData = () => {
         const hh = String(now.getHours()).padStart(2, '0');
         const min = String(now.getMinutes()).padStart(2, '0');
         const ss = String(now.getSeconds()).padStart(2, '0');
-        
+
         const filename = `michiquest-backup-${yy}${mm}${dd}_${hh}${min}${ss}.json`;
 
         const a = document.createElement('a');
@@ -46,7 +46,7 @@ export const exportData = () => {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
+
         return { success: true };
     } catch (error) {
         console.error('Export failed:', error);
@@ -56,27 +56,27 @@ export const exportData = () => {
 
 export const validateImportData = (dataObj) => {
     // 必須キーのいずれかが存在するかチェック
-    const requiredKeys = ['chatSessions', 'titlesCollection', 'totalScore', 'geminiApiKey'];
+    const requiredKeys = ['chatSessions', 'michi-field-notes', 'michi-trust-score', 'geminiApiKey'];
     const hasAnyKey = requiredKeys.some(key => Object.prototype.hasOwnProperty.call(dataObj, key));
     if (!hasAnyKey) {
         return { isValid: false, error: 'MichiQuestのバックアップデータではありません。' };
     }
-    
+
     // データ形式の簡易チェック
     if (dataObj['chatSessions'] && !Array.isArray(dataObj['chatSessions'])) {
         return { isValid: false, error: '調査履歴のデータ形式が不正です。' };
     }
-    
+
     return { isValid: true };
 };
 
 export const hasExistingData = () => {
-    const keysToCheck = ['chatSessions', 'titlesCollection', 'totalScore'];
+    const keysToCheck = ['chatSessions', 'michi-field-notes', 'michi-trust-score'];
     for (const key of keysToCheck) {
         const data = localStorage.getItem(key);
         // dataが存在し、空配列や空オブジェクトでない場合を既存データありとみなす
         if (data && data !== '[]' && data !== '{}') {
-             return true;
+            return true;
         }
     }
     return false;
@@ -86,8 +86,8 @@ export const importData = (dataObj) => {
     try {
         const keysToImport = [
             'chatSessions',
-            'titlesCollection',
-            'totalScore',
+            'michi-field-notes',
+            'michi-trust-score',
             'aiAvatarData',
             'aiAvatarAngry',
             'aiAvatarJoy',
@@ -105,8 +105,8 @@ export const importData = (dataObj) => {
             if (Object.prototype.hasOwnProperty.call(dataObj, key)) {
                 localStorage.setItem(key, JSON.stringify(dataObj[key]));
             } else {
-                 // インポートデータに含まれないキーは初期化する(完全な差し替えのため)
-                 localStorage.removeItem(key);
+                // インポートデータに含まれないキーは初期化する(完全な差し替えのため)
+                localStorage.removeItem(key);
             }
         }
         return { success: true };
