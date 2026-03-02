@@ -26,7 +26,6 @@ export default function ChatThread({
     onScoreAdded,
     onTitleAdded,
     onMissionCleared,
-    isSessionCleared,
     isReplayMode = false,
     isAutoReplayMode = false,
     onExitReplay
@@ -69,15 +68,20 @@ export default function ChatThread({
         }
     }, [isReplayMode, isAutoReplayMode, currentMission]);
 
-    // リプレイ終了時のクリア演出
+    // リプレイ進行中のクリア演出再現
     useEffect(() => {
-        if (isReplayMode && isSessionCleared && chatHistory.length > 0 && replayIndex === chatHistory.length - 1) {
-            setShowClearAnimation(true);
-            setTimeout(() => setShowClearAnimation(false), 5000);
-        } else if (isReplayMode) {
-            setShowClearAnimation(false);
+        if (isReplayMode && chatHistory.length > 0 && replayIndex < chatHistory.length) {
+            const currentMsg = chatHistory[replayIndex];
+            if (currentMsg && currentMsg.isClearMessage) {
+                setClearedTitle(currentMsg.clearedTitle);
+                setShowClearAnimation(true);
+                // 5秒後に消すか、次のインデックスに進んだら消す（他のuseEffectで制御）
+                setTimeout(() => setShowClearAnimation(false), 5000);
+            } else {
+                setShowClearAnimation(false);
+            }
         }
-    }, [isReplayMode, isSessionCleared, replayIndex, chatHistory.length]);
+    }, [isReplayMode, replayIndex, chatHistory]);
 
     // 表示用の履歴配列（リプレイモード時はスライスする）
     const displayedHistory = isReplayMode ? chatHistory.slice(0, replayIndex + 1) : chatHistory;
@@ -366,7 +370,15 @@ export default function ChatThread({
                 displayMsg = displayMsg.replace(/\[ANNOUNCE:\s*.*?\]/ig, '').trim();
             }
 
-            const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'text', text: displayMsg };
+            const aiMsg = {
+                id: Date.now() + 1,
+                role: 'ai',
+                type: 'text',
+                text: displayMsg,
+                // リプレイ時のクリア演出トリガー用情報
+                isClearMessage: (earnedScore !== null && earnedScore >= 60),
+                clearedTitle: earnedTitle
+            };
 
             // スコア・称号の発表メッセージをAIの会話として生成
             const newMessages = [aiMsg];

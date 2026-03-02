@@ -326,7 +326,6 @@ export default function App() {
                 onScoreAdded={(score) => setTotalScore(prev => prev + score)}
                 onTitleAdded={(newTitleData) => setTitlesCollection(prev => [newTitleData, ...prev])}
                 onMissionCleared={handleMissionCleared}
-                isSessionCleared={activeSession?.isCleared}
                 isReplayMode={isReplayMode}
                 isAutoReplayMode={isAutoReplayMode}
                 onExitReplay={() => {
