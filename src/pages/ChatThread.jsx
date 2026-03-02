@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ChatBubble from '../components/ChatBubble';
 import Button from '../components/Button';
-import { Camera, Send, Loader2, Map as MapIcon, RefreshCcw, Award, Play, Pause, ChevronLeft, ChevronRight, X, Image as ImageIcon } from 'lucide-react';
+import { Camera, Send, Loader2, Map as MapIcon, RefreshCcw, Award, Play, Pause, ChevronLeft, ChevronRight, X, Image as ImageIcon, Star } from 'lucide-react';
 import { generateMission, evaluateReport, verifyLocationExists, chatWithOperator } from '../utils/api';
 import { resizeImage } from '../utils/imageUtils';
 import { getGPSFromImage } from '../utils/exifUtils';
@@ -23,8 +23,9 @@ export default function ChatThread({
     setChatHistory,
     currentMission,
     setCurrentMission,
-    onScoreAdded,
-    onTitleAdded,
+    trustPrompt,
+    onTrustChanged,
+    onInsightAdded,
     onMissionCleared,
     isReplayMode = false,
     isAutoReplayMode = false,
@@ -189,7 +190,7 @@ export default function ChatThread({
 
         try {
             // ハルシネーション対策: 目的地リストがあればプロンプトに結合する
-            let finalPrompt = basePrompt + "\n\n" + prompt1;
+            let finalPrompt = basePrompt + "\n\n【ミチ・ノマの現在の態度（信頼度に基づく）】\n" + trustPrompt + "\n\n" + prompt1;
             const validDestinations = (destinationList || '').trim();
             if (validDestinations) {
                 finalPrompt += `\n\n【重要】調査の目的地は、必ず以下のリストの中から実在するものを1つだけ選んでください。\n${validDestinations}`;
@@ -316,87 +317,108 @@ export default function ChatThread({
 
         try {
             // パラメータ: apiKey, aiModel, systemInstruction, missionText, imageBase64, chatHistory, newText
-            const finalPrompt = basePrompt + "\n\n" + prompt2;
+            const finalPrompt = basePrompt + "\n\n【ミチ・ノマの現在の態度（信頼度に基づく）】\n" + trustPrompt + "\n\n" + prompt2;
             const resultText = await evaluateReport(apiKey, aiModel, finalPrompt, currentMission || "調査対象不明", imageBase64, chatHistory, currentInput);
 
-            // SCOREタグのパース
             let displayMsg = resultText;
-            let earnedScore = null;
+            let earnedGrade = null;
             let earnedTitle = null;
 
-            const scoreMatch = resultText.match(/\[SCORE:\s*(\d+)\]/i);
-            if (scoreMatch) {
-                const score = parseInt(scoreMatch[1], 10);
-                if (!isNaN(score) && onScoreAdded) {
-                    onScoreAdded(score);
-                    earnedScore = score;
+            // GRADEタグのパース
+            const gradeMatch = resultText.match(/\[GRADE:\s*(\d+)\]/i);
+            if (gradeMatch) {
+                const grade = parseInt(gradeMatch[1], 10);
+                if (!isNaN(grade)) {
+                    earnedGrade = grade;
+                    // 信頼度の増減ロジック
+                    let trustDiff = 0;
+                    if (grade === 3) trustDiff = 15;
+                    else if (grade === 2) trustDiff = 8;
+                    else if (grade === 1) trustDiff = -3;
+                    else trustDiff = -10;
+
+                    if (onTrustChanged) onTrustChanged(trustDiff);
                 }
-                // 表示用テキストからはSCOREタグを削除
-                displayMsg = displayMsg.replace(/\[SCORE:\s*\d+\]/ig, '').trim();
             }
 
-            // TITLEタグのパース
-            const titleMatch = resultText.match(/\[TITLE:\s*(.*?)\]/i);
-            if (titleMatch) {
-                const newTitle = titleMatch[1].trim();
-                // 60点未満の失敗時、または "なし" 指定の場合は称号を付与しない
-                if (earnedScore >= 60 && newTitle && newTitle !== 'なし' && newTitle !== '無し' && newTitle !== 'None' && onTitleAdded) {
-                    onTitleAdded({
-                        title: newTitle,
-                        date: new Date().toISOString(),
-                        mission: currentMission
-                    });
-                    earnedTitle = newTitle;
+            // INSIGHTタグのパース
+            const insightMatch = resultText.match(/\[INSIGHT:\s*({[\s\S]*?}|[^\]]*)\]/i);
+            if (insightMatch) {
+                const insightStr = insightMatch[1].trim();
+                if (insightStr !== 'なし' && insightStr !== '無し' && insightStr !== 'None' && earnedGrade >= 1) {
+                    try {
+                        const insightData = JSON.parse(insightStr);
+                        if (onInsightAdded && insightData.title) {
+                            onInsightAdded({
+                                ...insightData,
+                                grade: earnedGrade,
+                                source: 'mission',
+                                date: new Date().toISOString()
+                            });
+                            earnedTitle = insightData.title;
+                        }
+                    } catch (e) {
+                        console.error("Failed to parse INSIGHT data in evaluateReport", e);
+                    }
                 }
-                // 表示用テキストからはTITLEタグを削除
-                displayMsg = displayMsg.replace(/\[TITLE:\s*.*?\]/ig, '').trim();
             }
 
-            // クリア判定と演出のトリガー
-            if (earnedScore !== null && earnedScore >= 60) {
+            // AREAタグの処理 (再調査等で目的地変更指示があった場合)
+            const areaMatch = resultText.match(/\[AREA:\s*({[\s\S]*?})\]/);
+            if (areaMatch) {
+                setCurrentMission(resultText); // AREAタグが含まれる文字列を渡すとApp.jsx側で新しい目的地として更新される
+            }
+
+            // クリア判定と演出のトリガー (GRADE 2以上で合格)
+            if (earnedGrade !== null && earnedGrade >= 2) {
                 if (onMissionCleared) onMissionCleared();
+                setCurrentMission(""); // ミッションクリア後はフリー状態に戻す（自発写真や雑談を可能にするため）
                 if (!isReplayMode) {
-                    // ここでは即時アニメーションを発火せず、保留状態にする
                     setPendingClearResult({ title: earnedTitle });
                 }
             }
 
             // ANNOUNCEタグのパース
             let announceMsg = null;
-            const announceMatch = resultText.match(/\[ANNOUNCE:\s*(.*?)\]/i);
+            const announceMatch = resultText.match(/\[ANNOUNCE:([\s\S]*?)\]/i);
             if (announceMatch) {
                 announceMsg = announceMatch[1].trim();
-                // 表示用テキストからはANNOUNCEタグを削除
-                displayMsg = displayMsg.replace(/\[ANNOUNCE:\s*.*?\]/ig, '').trim();
             }
+
+            // 全タグのクリーンアップ
+            displayMsg = displayMsg.replace(/\[Emotion:[^\]]*\]/ig, '')
+                .replace(/\[GRADE:[^\]]*\]/ig, '')
+                .replace(/\[INSIGHT:\s*({[\s\S]*?}|[^\]]*)\]/ig, '')
+                .replace(/\[AREA:\s*({[\s\S]*?})\]/ig, '')
+                .replace(/\[ANNOUNCE:([\s\S]*?)\]/ig, '')
+                .trim();
 
             const aiMsg = {
                 id: Date.now() + 1,
                 role: 'ai',
                 type: 'text',
                 text: displayMsg,
-                // リプレイ時のクリア演出トリガー用情報
-                isClearMessage: (earnedScore !== null && earnedScore >= 60),
+                isClearMessage: (earnedGrade !== null && earnedGrade >= 2),
                 clearedTitle: earnedTitle
             };
 
-            // スコア・称号の発表メッセージをAIの会話として生成
             const newMessages = [aiMsg];
+            if (earnedGrade !== null) {
+                newMessages.push({
+                    id: Date.now() + 2,
+                    role: 'system',
+                    type: 'evaluation',
+                    grade: earnedGrade,
+                    title: earnedTitle
+                });
+            }
             if (announceMsg) {
-                newMessages.push({ id: Date.now() + 2, role: 'ai', type: 'text', text: announceMsg });
-            } else if (earnedScore !== null || earnedTitle !== null) {
-                // Fallback (AI会話トーンにあわせた最低限の報告)
-                let sysText = "";
-                if (earnedScore !== null) sysText += `今回のスコアは ${earnedScore}pt だ！`;
-                if (earnedTitle !== null) sysText += ` 新たな称号「${earnedTitle}」を授ける！`;
-                if (sysText) newMessages.push({ id: Date.now() + 2, role: 'ai', type: 'text', text: sysText.trim() });
+                newMessages.push({ id: Date.now() + 3, role: 'ai', type: 'text', text: announceMsg });
             }
 
             setChatHistory(prev => [...prev, ...newMessages]);
-            // Depending on outcome, we might clear currentMission here
         } catch (err) {
             setError(err.message || "予期せぬエラーが発生しました");
-            // Remove user msg on fail
             setChatHistory(prev => prev.filter(msg => msg.id !== userMsg.id));
             setInputText(savedInputText);
             setImagePreview(savedImagePreview);
@@ -407,53 +429,108 @@ export default function ChatThread({
         }
     };
 
-    const handleOperatorChat = async () => {
+    const handleOperatorChat = async (withImage = false) => {
         if (!apiKey) return;
         setLoading(true);
         setError('');
 
-        const currentInput = inputText || '進捗どう？';
-        const userMsg = { id: Date.now(), role: 'user', type: 'text', text: currentInput };
+        const currentInput = inputText || (withImage ? 'この写真を見て！' : '進捗どう？');
+        const userMsg = {
+            id: Date.now(),
+            role: 'user',
+            type: withImage ? 'image' : 'text',
+            text: currentInput,
+            ...(withImage && { image: imageBase64, location: imageLocation })
+        };
         const savedInput = inputText;
+        const savedImagePreview = imagePreview;
+        const savedImageBase64 = imageBase64;
+        const savedImageLocation = imageLocation;
+
         setChatHistory(prev => [...prev, userMsg]);
         setInputText('');
+        if (withImage) handleClearImage();
 
         try {
-            const finalPrompt = basePrompt + "\n\n" + prompt3 + `\n\n【システムデータ】\n現在進行中の調査対象：${currentMission}`;
-            const replyText = await chatWithOperator(apiKey, aiModel, finalPrompt, chatHistory, currentInput);
+            const finalPrompt = basePrompt + "\n\n【ミチ・ノマの現在の態度（信頼度に基づく）】\n" + trustPrompt + "\n\n" + prompt3 + (currentMission ? `\n\n【システムデータ】\n現在進行中の調査対象：${currentMission}` : "");
+            const replyText = await chatWithOperator(apiKey, aiModel, finalPrompt, chatHistory, currentInput, withImage ? imageBase64 : null);
 
-            // AREAタグからnameを抽出して現在地を更新する処理
-            const areaMatch = replyText.match(/\[AREA:\s*({[\s\S]*?})\]/);
             let displayMsg = replyText;
 
+            // AREAタグ抽出
+            const areaMatch = replyText.match(/\[AREA:\s*({[\s\S]*?})\]/);
             if (areaMatch) {
                 try {
                     const areaData = JSON.parse(areaMatch[1]);
                     if (areaData.name) {
-                        // 実在チェック
                         const exists = await verifyLocationExists(areaData.name);
                         if (exists) {
-                            setCurrentMission(replyText); // App.jsx側で調査情報を更新する
-                            console.log(`Mission updated to ${areaData.name}`);
-                        } else {
-                            console.warn(`Location ${areaData.name} not found. Ignored AREA tag.`);
+                            setCurrentMission(replyText);
                         }
                     } else {
-                        setCurrentMission(replyText); // nameが無い場合でもAREA情報があれば更新
+                        setCurrentMission(replyText);
                     }
                 } catch (e) {
                     console.error("Failed to parse AREA tag in operator chat", e);
                 }
-                // チャット上はAREAタグを非表示にする
-                displayMsg = displayMsg.replace(/\[AREA:\s*({[\s\S]*?})\]/ig, '').trim();
             }
 
+            // 自発写真によるINSIGHTタグ抽出
+            let spontaneousTitle = null;
+            if (withImage) {
+                const insightMatch = replyText.match(/\[INSIGHT:\s*({[\s\S]*?}|[^\]]*)\]/i);
+                if (insightMatch) {
+                    const insightStr = insightMatch[1].trim();
+                    if (insightStr !== 'なし' && insightStr !== '無し' && insightStr !== 'None') {
+                        try {
+                            const insightData = JSON.parse(insightStr);
+                            if (onInsightAdded && insightData.title) {
+                                onInsightAdded({
+                                    ...insightData,
+                                    grade: null, // 自発写真なのでGRADEはつかない
+                                    source: 'spontaneous',
+                                    date: new Date().toISOString()
+                                });
+                                spontaneousTitle = insightData.title;
+                                if (onTrustChanged) onTrustChanged(5); // 有益なら信頼度+5
+                            }
+                        } catch (e) {
+                            console.error("Failed to parse INSIGHT data in operator chat", e);
+                        }
+                    } else {
+                        if (onTrustChanged) onTrustChanged(-2); // 無益だった場合は信頼度を少し下げる
+                    }
+                }
+            }
+
+            // 全タグのクリーンアップ (withImageに関わらず)
+            displayMsg = displayMsg.replace(/\[Emotion:[^\]]*\]/ig, '')
+                .replace(/\[GRADE:[^\]]*\]/ig, '')
+                .replace(/\[INSIGHT:\s*({[\s\S]*?}|[^\]]*)\]/ig, '')
+                .replace(/\[AREA:\s*({[\s\S]*?})\]/ig, '')
+                .replace(/\[ANNOUNCE:([\s\S]*?)\]/ig, '')
+                .trim();
+
             const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'text', text: displayMsg };
-            setChatHistory(prev => [...prev, aiMsg]);
+            const newMessages = [aiMsg];
+            if (spontaneousTitle) {
+                newMessages.push({
+                    id: Date.now() + 2,
+                    role: 'system',
+                    type: 'insight',
+                    title: spontaneousTitle
+                });
+            }
+            setChatHistory(prev => [...prev, ...newMessages]);
         } catch (err) {
             setError(err.message || "通信エラーが発生しました");
             setChatHistory(prev => prev.filter(msg => msg.id !== userMsg.id));
             setInputText(savedInput);
+            if (withImage) {
+                setImagePreview(savedImagePreview);
+                setImageBase64(savedImageBase64);
+                setImageLocation(savedImageLocation);
+            }
         } finally {
             setLoading(false);
         }
@@ -474,7 +551,13 @@ export default function ChatThread({
 
         if (loading || isProcessingImage) return;
         if (imageBase64) {
-            handleReportMission();
+            if (currentMission) {
+                // ミッション実行中は報告として扱う
+                handleReportMission();
+            } else {
+                // フリー状態の時は自発写真として扱う
+                handleOperatorChat(true);
+            }
         } else if (inputText.trim()) {
             if (currentMission) {
                 handleOperatorChat();
@@ -521,12 +604,50 @@ export default function ChatThread({
                     displayedHistory.map((msg) => (
                         <div key={msg.id} className="w-full">
                             {msg.role === 'system' ? (
-                                <div className="flex justify-center my-4">
-                                    <div className="bg-earth-200 text-earth-800 px-4 py-2 rounded-full text-sm font-bold shadow-sm flex items-center gap-2 border border-earth-300">
-                                        <Award size={18} className="text-yellow-600" />
-                                        {msg.text}
+                                msg.type === 'evaluation' ? (
+                                    <div className="flex justify-center my-6 animate-fade-in-up">
+                                        <div className="bg-gradient-to-br from-[#4E342E] to-[#3E2723] border border-[#8D6E63]/40 p-5 rounded-xl shadow-[0_10px_25px_rgba(0,0,0,0.5)] max-w-sm w-full relative overflow-hidden">
+                                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-600 via-yellow-400 to-yellow-600"></div>
+                                            <div className="text-center">
+                                                <div className="text-amber-100/60 text-xs font-bold tracking-widest mb-2 font-serif border-b border-[#8D6E63]/0 pb-1">ミチ・ノマの評価</div>
+                                                <div className="flex justify-center gap-2 mb-4 mt-2">
+                                                    {[1, 2, 3].map(star => (
+                                                        <Star
+                                                            key={star}
+                                                            size={48}
+                                                            className={`transform transition-all duration-500 ease-out ${star <= msg.grade ? 'text-yellow-400 drop-shadow-[0_0_12px_rgba(250,204,21,0.8)] scale-110' : 'text-[#8D6E63]/30 scale-90'}`}
+                                                            fill={star <= msg.grade ? 'currentColor' : 'none'}
+                                                            strokeWidth={star <= msg.grade ? 1 : 1.5}
+                                                        />
+                                                    ))}
+                                                </div>
+                                                {msg.title && (
+                                                    <div className="mt-4 pt-4 border-t border-[#8D6E63]/30 relative">
+                                                        <div className="text-xl font-bold text-amber-50 leading-snug font-serif break-words">『{msg.title}』</div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
+                                ) : msg.type === 'insight' ? (
+                                    <div className="flex justify-center my-4 animate-fade-in-up">
+                                        <div className="bg-[#4E342E] border border-amber-900/50 text-amber-50 px-5 py-3 rounded-lg shadow-md flex items-center gap-3 relative overflow-hidden max-w-sm w-full">
+                                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-500"></div>
+                                            <Award size={24} className="text-yellow-500 drop-shadow flex-shrink-0" />
+                                            <div className="min-w-0">
+                                                <div className="text-[10px] text-amber-200/60 font-serif italic mb-0.5">Spontaneous discovery!</div>
+                                                <div className="text-sm font-serif font-bold truncate leading-tight">「{msg.title}」を記録</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex justify-center my-4 animate-fade-in">
+                                        <div className="bg-earth-200 text-earth-800 px-4 py-2 rounded-full text-sm font-bold shadow-sm flex items-center gap-2 border border-earth-300">
+                                            <Award size={18} className="text-yellow-600" />
+                                            {msg.text}
+                                        </div>
+                                    </div>
+                                )
                             ) : (
                                 <>
                                     {msg.type === 'image' && (
@@ -597,41 +718,45 @@ export default function ChatThread({
             </div>
 
             {/* Clear Animation Overlay */}
-            {showClearAnimation && (
-                <div
-                    className="absolute inset-0 z-50 flex flex-col items-center justify-center pointer-events-none bg-black/40 backdrop-blur-sm animate-in fade-in duration-500"
-                    role="status"
-                    aria-live="polite"
-                >
-                    <div className="transform -rotate-6 motion-safe:animate-bounce">
-                        <div className="text-center drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)]">
-                            <div className="text-5xl md:text-7xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-600 tracking-wider">
-                                MISSION
+            {
+                showClearAnimation && (
+                    <div
+                        className="absolute inset-0 z-50 flex flex-col items-center justify-center pointer-events-none bg-black/40 backdrop-blur-sm animate-in fade-in duration-500"
+                        role="status"
+                        aria-live="polite"
+                    >
+                        <div className="transform -rotate-6 motion-safe:animate-bounce">
+                            <div className="text-center drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)]">
+                                <div className="text-5xl md:text-7xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-600 tracking-wider">
+                                    MISSION
+                                </div>
+                                <div className="text-6xl md:text-9xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-orange-400 to-red-600 tracking-tighter leading-none mt-[-10px]">
+                                    CLEARED!
+                                </div>
                             </div>
-                            <div className="text-6xl md:text-9xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-orange-400 to-red-600 tracking-tighter leading-none mt-[-10px]">
-                                CLEARED!
-                            </div>
+                            {clearedTitle && (
+                                <div className="mt-8 mx-auto text-center bg-black/80 text-yellow-400 px-6 py-2 rounded-full font-bold shadow-[0_0_15px_rgba(234,179,8,0.5)] border border-yellow-500/50 transform scale-125">
+                                    👑 新たな知見「{clearedTitle}」を獲得！
+                                </div>
+                            )}
                         </div>
-                        {clearedTitle && (
-                            <div className="mt-8 mx-auto text-center bg-black/80 text-yellow-400 px-6 py-2 rounded-full font-bold shadow-[0_0_15px_rgba(234,179,8,0.5)] border border-yellow-500/50 transform scale-125">
-                                👑 新たな称号「{clearedTitle}」を獲得！
-                            </div>
-                        )}
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Exit Replay Button (Top Right) */}
-            {isReplayMode && (
-                <button
-                    onClick={() => { if (onExitReplay) onExitReplay(); setIsPlaying(false); }}
-                    className="absolute top-4 right-4 z-50 p-2 bg-earth-900/40 hover:bg-red-600/80 text-white rounded-full transition-colors backdrop-blur shadow-sm cursor-pointer"
-                    title="リプレイを終了 (Esc)"
-                    aria-label="リプレイを終了"
-                >
-                    <X size={20} className="opacity-75" />
-                </button>
-            )}
+            {
+                isReplayMode && (
+                    <button
+                        onClick={() => { if (onExitReplay) onExitReplay(); setIsPlaying(false); }}
+                        className="absolute top-4 right-4 z-50 p-2 bg-earth-900/40 hover:bg-red-600/80 text-white rounded-full transition-colors backdrop-blur shadow-sm cursor-pointer"
+                        title="リプレイを終了 (Esc)"
+                        aria-label="リプレイを終了"
+                    >
+                        <X size={20} className="opacity-75" />
+                    </button>
+                )
+            }
 
             {/* Input Area (Bottom Sticky - Same UI for both Modes) */}
             <div className={`absolute bottom-0 left-0 right-0 bg-earth-100 border-t p-2 sm:p-4 shadow-lg transition-colors ${isReplayMode ? 'border-amber-400' : 'border-earth-300'}`}>
@@ -740,6 +865,6 @@ export default function ChatThread({
                     </>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

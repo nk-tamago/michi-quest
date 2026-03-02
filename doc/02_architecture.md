@@ -40,7 +40,7 @@ MichiQuest はモダンなフロントエンド技術のみで完結するサー
 
 ## 4. 状態管理戦略 (State Management)
 *   Reactの標準機能である `useState` と `useEffect` を中心に状態を管理し、`useLocalStorage` カスタムフックによって永続化しています。
-*   **グローバルな状態**: `App.jsx` が保持。`chatSessions` (全履歴)、`totalScore` (通算スコア)、`titlesCollection` (獲得称号)、各種設定(APIキー、プロンプト、アバター)。
+*   **グローバルな状態**: `App.jsx` が保持。`chatSessions` (全履歴)、`michi-trust-score` (信頼度/ニコちゃんマーク)、`michi-field-notes` (知見コレクション)、各種設定(APIキー、プロンプト、アバター)。
 *   **ローカルな状態**: `ChatThread.jsx` (入力テキスト、画像プレビュー、リプレイステート)、`MapInteractive.jsx` (地図の現在地表示)。
 
 ## 5. デプロイメント層 (Deployment)
