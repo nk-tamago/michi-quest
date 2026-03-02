@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Plus, MessageSquare, Trash2, Award, Play } from 'lucide-react';
+import { X, Plus, MessageSquare, Trash2, Award, Play, StepForward } from 'lucide-react';
 
 const getRank = (score) => {
     if (score < 100) return "★";
@@ -118,14 +118,26 @@ export default function Sidebar({
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            if (onStartReplay) onStartReplay(session.id);
+                                            if (onStartReplay) onStartReplay(session.id, false); // false = manual
                                         }}
                                         className="p-1.5 hover:text-green-400 hover:bg-earth-900 rounded-md transition-[color,background-color] flex-shrink-0"
-                                        title="録画リプレイを開始"
-                                        aria-label="リプレイ"
+                                        title="録画リプレイ（手動送り）を開始"
+                                        aria-label="手動リプレイ"
+                                    >
+                                        <StepForward size={16} />
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (onStartReplay) onStartReplay(session.id, true); // true = auto
+                                        }}
+                                        className="p-1.5 hover:text-blue-400 hover:bg-earth-900 rounded-md transition-[color,background-color] flex-shrink-0"
+                                        title="録画リプレイ（自動再生）を開始"
+                                        aria-label="自動リプレイ"
                                     >
                                         <Play size={16} />
                                     </button>
+
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();

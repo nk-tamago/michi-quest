@@ -1,9 +1,9 @@
 import React, { useRef, useState } from 'react';
 import Button from '../components/Button';
-import { Settings as SettingsIcon, ImagePlus, Save } from 'lucide-react';
-import { resizeImage } from '../utils/imageUtils';
+import { Settings as SettingsIcon, ImagePlus, Save, Download, Upload } from 'lucide-react';
 import { APP_CONFIG } from '../config';
 import ImageCropper from '../components/ImageCropper';
+import { exportData, importData, validateImportData, hasExistingData } from '../utils/backupUtils';
 
 export default function SettingsPath({
     apiKey, setApiKey,
@@ -29,6 +29,9 @@ export default function SettingsPath({
     const [isCropping, setIsCropping] = useState(false);
     const [cropImageUrl, setCropImageUrl] = useState(null);
     const [currentSetter, setCurrentSetter] = useState(null);
+
+    // インポート用ファイルinputの参照
+    const importInputRef = useRef(null);
 
     const handleImageUpload = (e, setter) => {
         const file = e.target.files[0];
@@ -73,6 +76,59 @@ export default function SettingsPath({
     const handleSave = (e) => {
         e.preventDefault();
         onSave();
+    };
+
+    const handleExport = () => {
+        const result = exportData();
+        if (result.success) {
+            alert('エクスポートが完了しました。');
+        } else {
+            alert(result.error);
+        }
+    };
+
+    const handleImportFileChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const jsonObj = JSON.parse(event.target.result);
+
+                // バリデーション検証
+                const validation = validateImportData(jsonObj);
+                if (!validation.isValid) {
+                    alert('エラー: ' + validation.error);
+                    return;
+                }
+
+                // 既存データの有無チェックと警告画面表示
+                const exists = hasExistingData();
+                if (exists) {
+                    const confirmOverwrite = window.confirm("現在のデータはすべて消去され、インポートしたデータに差し替えられます。この操作は取り消せません。よろしいですか？");
+                    if (!confirmOverwrite) {
+                        return; // キャンセルした場合は処理を中断
+                    }
+                }
+
+                // インポート処理実行
+                const result = importData(jsonObj);
+                if (result.success) {
+                    alert('データのインポートが完了しました。画面を再読み込みします。');
+                    window.location.reload();
+                } else {
+                    alert(result.error);
+                }
+            } catch (err) {
+                console.error("Import processing error", err);
+                alert("ファイルの読み込み中にエラーが発生しました。不正なJSONファイルである可能性があります。");
+            } finally {
+                // ファイル選択をリセットして同じファイルを再度選べるようにする
+                e.target.value = '';
+            }
+        };
+        reader.readAsText(file);
     };
 
     return (
@@ -303,20 +359,46 @@ export default function SettingsPath({
 
             {/* Data Management Section */}
             <div className="bg-white rounded-2xl shadow-sm border border-red-200 p-6 space-y-4">
-                <h3 className="text-lg font-bold text-red-800 border-b border-red-200 pb-2">データ管理 (Danger Zone)</h3>
-                <p className="text-sm text-earth-700">これまで獲得した「称号」と「通算スコア」のデータを初期化します。この操作は取り消せません。</p>
-                <div className="flex justify-start">
-                    <button
-                        type="button"
-                        className="px-4 py-2 bg-red-100 text-red-700 font-bold rounded-lg border border-red-300 hover:bg-red-200 transition-colors"
-                        onClick={() => {
-                            if (window.confirm("本当に称号とスコアデータを初期化しますか？\n（この操作は元に戻せません）")) {
-                                onClearData();
-                            }
-                        }}
-                    >
-                        データを初期化する
-                    </button>
+                <h3 className="text-lg font-bold text-red-800 border-b border-red-200 pb-2">データ管理</h3>
+
+                {/* バックアップと復元 */}
+                <div className="space-y-3 pb-4 border-b border-red-100">
+                    <p className="text-sm font-semibold text-earth-800">バックアップと復元</p>
+                    <p className="text-xs text-earth-700">現在の調査記録や設定用データをファイルとして書き出したり、過去に書き出したデータを読み込んで差し替えたりできます。</p>
+                    <div className="flex gap-3">
+                        <Button variant="secondary" onClick={handleExport} className="flex-1">
+                            <Download size={16} className="mr-2" /> データのエクスポート
+                        </Button>
+                        <Button variant="secondary" onClick={() => importInputRef.current?.click()} className="flex-1">
+                            <Upload size={16} className="mr-2" /> データのインポート
+                        </Button>
+                        <input
+                            type="file"
+                            accept=".json"
+                            ref={importInputRef}
+                            onChange={handleImportFileChange}
+                            className="hidden"
+                        />
+                    </div>
+                </div>
+
+                {/* データの初期化 */}
+                <div className="space-y-3 pt-2">
+                    <p className="text-sm font-semibold text-red-700">データの初期化 (Danger Zone)</p>
+                    <p className="text-xs text-earth-700">これまで獲得した「称号」と「通算スコア」のデータを初期化します。この操作は取り消せません。</p>
+                    <div className="flex justify-start">
+                        <button
+                            type="button"
+                            className="px-4 py-2 bg-red-100 text-red-700 font-bold rounded-lg border border-red-300 hover:bg-red-200 transition-colors"
+                            onClick={() => {
+                                if (window.confirm("本当に称号とスコアデータを初期化しますか？\n（この操作は元に戻せません）")) {
+                                    onClearData();
+                                }
+                            }}
+                        >
+                            データを初期化する
+                        </button>
+                    </div>
                 </div>
             </div>
 

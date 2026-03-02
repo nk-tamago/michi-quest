@@ -28,6 +28,7 @@ export default function ChatThread({
     onMissionCleared,
     isSessionCleared,
     isReplayMode = false,
+    isAutoReplayMode = false,
     onExitReplay
 }) {
     const [loading, setLoading] = useState(false);
@@ -45,7 +46,10 @@ export default function ChatThread({
 
     // リプレイ用ステート
     const [replayIndex, setReplayIndex] = useState(0);
-    const [isPlaying, setIsPlaying] = useState(false);
+    const [isPlaying, setIsPlaying] = useState(isAutoReplayMode);
+    const [isReplayTyping, setIsReplayTyping] = useState(false);  // AI入力中アニメーション
+    const [replayInputText, setReplayInputText] = useState('');   // ユーザーの入力文字反映用
+    const [replayImagePreview, setReplayImagePreview] = useState(null); // ユーザーの画像反映用
 
     // クリア演出用ステート
     const [showClearAnimation, setShowClearAnimation] = useState(false);
@@ -56,11 +60,14 @@ export default function ChatThread({
     useEffect(() => {
         if (isReplayMode) {
             setReplayIndex(0);
-            setIsPlaying(false);
+            setIsPlaying(isAutoReplayMode);
+            setIsReplayTyping(false);
+            setReplayInputText('');
+            setReplayImagePreview(null);
             setShowClearAnimation(false);
             setPendingClearResult(null);
         }
-    }, [isReplayMode, currentMission]);
+    }, [isReplayMode, isAutoReplayMode, currentMission]);
 
     // リプレイ終了時のクリア演出
     useEffect(() => {
@@ -75,27 +82,63 @@ export default function ChatThread({
     // 表示用の履歴配列（リプレイモード時はスライスする）
     const displayedHistory = isReplayMode ? chatHistory.slice(0, replayIndex + 1) : chatHistory;
 
+    // リプレイ制御フロー (手動 / 自動共通の1ステップ進行)
+    const advanceReplayStep = React.useCallback(() => {
+        if (replayIndex >= chatHistory.length - 1) {
+            setIsPlaying(false);
+            return;
+        }
+
+        const nextMsg = chatHistory[replayIndex + 1];
+        if (nextMsg.role === 'user') {
+            // ユーザーの発言：入力欄に一括表示してディレイ後に送信（インクリメント）する
+            setReplayInputText(nextMsg.text || '');
+            if (nextMsg.type === 'image' && nextMsg.image) setReplayImagePreview(nextMsg.image);
+
+            setTimeout(() => {
+                setReplayIndex(prev => prev + 1);
+                setReplayInputText('');
+                setReplayImagePreview(null);
+            }, 1000); // 1秒ディレイ
+        } else {
+            // AI または system：入力中アニメーションを挟んでから表示
+            setIsReplayTyping(true);
+            setTimeout(() => {
+                setIsReplayTyping(false);
+                setReplayIndex(prev => prev + 1);
+            }, 1500); // 1.5秒待機
+        }
+    }, [replayIndex, chatHistory]);
+
     // 自動再生タイマー
     useEffect(() => {
         let timer;
-        if (isReplayMode && isPlaying && replayIndex < chatHistory.length - 1) {
+        // 再生中で、現在待機演出中（TypingやInput中）でなければ、次のステップを発火
+        if (isReplayMode && isPlaying && !isReplayTyping && !replayInputText && replayIndex < chatHistory.length - 1) {
             timer = setTimeout(() => {
-                setReplayIndex(prev => prev + 1);
-            }, 2500); // 2.5秒間隔
+                advanceReplayStep();
+            }, 500); // ステップ間隔（0.5秒）
         } else if (replayIndex >= chatHistory.length - 1) {
             setIsPlaying(false);
         }
         return () => clearTimeout(timer);
-    }, [isReplayMode, isPlaying, replayIndex, chatHistory.length]);
+    }, [isReplayMode, isPlaying, isReplayTyping, replayInputText, replayIndex, chatHistory.length, advanceReplayStep]);
 
-    // キーボード操作（← → Space）
+    // キーボード操作（← → Space, Esc）
     useEffect(() => {
         if (!isReplayMode) return;
         const handleReplayKey = (e) => {
+            // Escで終了
+            if (e.key === 'Escape') {
+                if (onExitReplay) onExitReplay();
+                return;
+            }
             if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
-            if (e.key === 'ArrowRight') {
-                setReplayIndex(prev => Math.min(prev + 1, chatHistory.length - 1));
-            } else if (e.key === 'ArrowLeft') {
+            if (e.key === 'ArrowRight' && !isPlaying) {
+                // 手動時のみ右キーで次へ（待機中は無視）
+                if (!isReplayTyping && !replayInputText) advanceReplayStep();
+            } else if (e.key === 'ArrowLeft' && !isPlaying) {
+                // 戻る時は演出なしで即戻る
                 setReplayIndex(prev => Math.max(prev - 0, 0) - 1);
             } else if (e.key === ' ') {
                 e.preventDefault();
@@ -109,7 +152,7 @@ export default function ChatThread({
     // Auto-scroll to bottom when chat updates or replay advances
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [displayedHistory.length, loading, isReplayMode]);
+    }, [displayedHistory.length, loading, isReplayTyping, isReplayMode]);
 
     // 画像メニューの外側をクリックした時に閉じる処理
     useEffect(() => {
@@ -405,6 +448,18 @@ export default function ChatThread({
     };
 
     const handleSend = () => {
+        if (isReplayMode) {
+            // リプレイモードの隠し操作
+            if (isAutoReplayMode) {
+                setIsPlaying(!isPlaying); // 自動モード時はトグル
+            } else {
+                if (!isReplayTyping && !replayInputText) {
+                    advanceReplayStep(); // 手動時は次へ
+                }
+            }
+            return;
+        }
+
         if (loading || isProcessingImage) return;
         if (imageBase64) {
             handleReportMission();
@@ -492,7 +547,7 @@ export default function ChatThread({
                     ))
                 )}
 
-                {loading ? (
+                {loading || isReplayTyping ? (
                     <div className="flex w-full mt-4 space-x-3 md:space-x-4 max-w-xl mx-auto p-2 justify-start items-start">
                         <div className="flex-shrink-0">
                             <img className="h-28 w-28 md:h-32 md:w-32 rounded-full border-4 border-earth-300 object-cover bg-earth-200 shadow-sm" src={avatarData || './pwa-192x192.png'} alt="AI Avatar" width={128} height={128} />
@@ -554,121 +609,123 @@ export default function ChatThread({
                 </div>
             )}
 
-            {/* Input Area (Bottom Sticky - Switches with Replay Controls) */}
-            <div className="absolute bottom-0 left-0 right-0 bg-earth-100 border-t border-earth-300 p-2 sm:p-4 shadow-lg">
+            {/* Exit Replay Button (Top Right) */}
+            {isReplayMode && (
+                <button
+                    onClick={() => { if (onExitReplay) onExitReplay(); setIsPlaying(false); }}
+                    className="absolute top-4 right-4 z-50 p-2 bg-earth-900/40 hover:bg-red-600/80 text-white rounded-full transition-colors backdrop-blur shadow-sm cursor-pointer"
+                    title="リプレイを終了 (Esc)"
+                    aria-label="リプレイを終了"
+                >
+                    <X size={20} className="opacity-75" />
+                </button>
+            )}
+
+            {/* Input Area (Bottom Sticky - Same UI for both Modes) */}
+            <div className={`absolute bottom-0 left-0 right-0 bg-earth-100 border-t p-2 sm:p-4 shadow-lg transition-colors ${isReplayMode ? 'border-amber-400' : 'border-earth-300'}`}>
                 <div className="max-w-3xl mx-auto">
-                    {isReplayMode ? (
-                        <div className="flex items-center justify-between bg-earth-800 text-white rounded-xl shadow-inner px-2 py-2 sm:px-4 sm:py-3 border-2 border-earth-900">
-                            <div className="flex items-center gap-1 sm:gap-2">
-                                <button onClick={() => setIsPlaying(!isPlaying)} className="p-2 sm:p-3 hover:bg-earth-700 rounded-full transition-colors border border-earth-700 bg-earth-900" title="自動再生 (Space)">
-                                    {isPlaying ? <Pause size={24} className="text-yellow-400" /> : <Play size={24} className="text-green-400" />}
+                    <>
+                        {(imagePreview || replayImagePreview) ? (
+                            <div className="relative inline-block mb-3">
+                                <img src={imagePreview || replayImagePreview} alt="Preview" className="h-24 w-24 object-cover rounded-lg border-2 border-earth-400 shadow-sm" />
+                                <button
+                                    onClick={handleClearImage}
+                                    disabled={isReplayMode}
+                                    className={`absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md transition-colors ${isReplayMode ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-600'}`}
+                                    aria-label="画像をクリア"
+                                >
+                                    <RefreshCcw size={14} />
                                 </button>
-                                <div className="w-px h-8 bg-earth-700 mx-1 sm:mx-2"></div>
-                                <button onClick={() => setReplayIndex(prev => Math.max(prev - 1, 0))} disabled={replayIndex === 0} className="p-2 sm:p-3 hover:bg-earth-700 rounded-full disabled:opacity-30 transition-colors" title="前へ (←)"><ChevronLeft size={24} /></button>
-                                <button onClick={() => setReplayIndex(prev => Math.min(prev + 1, chatHistory.length - 1))} disabled={replayIndex === chatHistory.length - 1} className="p-2 sm:p-3 hover:bg-earth-700 rounded-full disabled:opacity-30 transition-colors" title="次へ (→)"><ChevronRight size={24} /></button>
                             </div>
+                        ) : null}
 
-                            <div className="text-sm sm:text-base font-mono font-bold text-earth-300 px-3 py-1.5 bg-earth-900 rounded-lg shadow-inner">
-                                {replayIndex + 1} <span className="opacity-50">/</span> {Math.max(1, chatHistory.length)}
-                            </div>
+                        <div className="flex gap-2 relative">
+                            {/* Hidden File Inputs */}
+                            <input
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                ref={cameraInputRef}
+                                onChange={(e) => {
+                                    if (isReplayMode) return;
+                                    setIsImageMenuOpen(false);
+                                    handleImageUpload(e);
+                                }}
+                                className="hidden"
+                            />
+                            <input
+                                type="file"
+                                accept="image/*"
+                                ref={galleryInputRef}
+                                onChange={(e) => {
+                                    if (isReplayMode) return;
+                                    setIsImageMenuOpen(false);
+                                    handleImageUpload(e);
+                                }}
+                                className="hidden"
+                            />
 
-                            <button onClick={() => { onExitReplay && onExitReplay(); setIsPlaying(false); }} className="p-2 sm:px-4 sm:py-2 flex items-center gap-1 sm:gap-2 bg-red-900/40 hover:bg-red-600 hover:text-white rounded-lg text-red-300 transition-colors font-bold border border-red-900/50" title="リプレイ終了">
-                                <span className="hidden sm:inline">終了</span><X size={20} />
-                            </button>
-                        </div>
-                    ) : (
-                        <>
-                            {imagePreview ? (
-                                <div className="relative inline-block mb-3">
-                                    <img src={imagePreview} alt="Preview" className="h-24 w-24 object-cover rounded-lg border-2 border-earth-400 shadow-sm" />
+                            {/* Menu Content */}
+                            {isImageMenuOpen && !isReplayMode && (
+                                <div ref={menuRef} className="absolute bottom-full left-0 mb-2 w-48 bg-white rounded-xl shadow-xl border border-earth-200 overflow-hidden z-50 animate-in slide-in-from-bottom-2 fade-in duration-200">
                                     <button
-                                        onClick={handleClearImage}
-                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
-                                        aria-label="画像をクリア"
+                                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-earth-800 hover:bg-earth-100 transition-colors font-bold border-b border-earth-100"
+                                        onClick={() => cameraInputRef.current?.click()}
                                     >
-                                        <RefreshCcw size={14} />
+                                        <div className="bg-blue-100 p-2 rounded-full text-blue-600"><Camera size={18} /></div>
+                                        カメラで撮影
+                                    </button>
+                                    <button
+                                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-earth-800 hover:bg-earth-100 transition-colors font-bold"
+                                        onClick={() => galleryInputRef.current?.click()}
+                                    >
+                                        <div className="bg-green-100 p-2 rounded-full text-green-600"><ImageIcon size={18} /></div>
+                                        写真から選ぶ
                                     </button>
                                 </div>
-                            ) : null}
+                            )}
 
-                            <div className="flex gap-2 relative">
-                                {/* Hidden File Inputs */}
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    capture="environment"
-                                    ref={cameraInputRef}
-                                    onChange={(e) => {
-                                        setIsImageMenuOpen(false);
-                                        handleImageUpload(e);
-                                    }}
-                                    className="hidden"
-                                />
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    ref={galleryInputRef}
-                                    onChange={(e) => {
-                                        setIsImageMenuOpen(false);
-                                        handleImageUpload(e);
-                                    }}
-                                    className="hidden"
-                                />
+                            {/* Attach Button (Toggles Menu) */}
+                            <button
+                                onClick={() => { if (!isReplayMode) setIsImageMenuOpen(!isImageMenuOpen); }}
+                                disabled={loading || isProcessingImage || isReplayMode}
+                                className={`p-3 md:p-4 rounded-xl border-2 transition-colors disabled:opacity-50 ${isReplayMode ? 'bg-earth-200 border-earth-300 text-earth-700 cursor-default' : (isImageMenuOpen ? 'bg-earth-300 border-earth-400 text-earth-800' : 'bg-earth-200 border-earth-300 text-earth-700 hover:bg-earth-300')}`}
+                                title="写真を添付"
+                                aria-label="写真を添付メニューを開く"
+                            >
+                                {isProcessingImage ? <Loader2 className="animate-spin" size={24} /> : <Camera size={24} />}
+                            </button>
 
-                                {/* Menu Content */}
-                                {isImageMenuOpen && (
-                                    <div ref={menuRef} className="absolute bottom-full left-0 mb-2 w-48 bg-white rounded-xl shadow-xl border border-earth-200 overflow-hidden z-50 animate-in slide-in-from-bottom-2 fade-in duration-200">
-                                        <button
-                                            className="w-full flex items-center gap-3 px-4 py-3 text-left text-earth-800 hover:bg-earth-100 transition-colors font-bold border-b border-earth-100"
-                                            onClick={() => cameraInputRef.current?.click()}
-                                        >
-                                            <div className="bg-blue-100 p-2 rounded-full text-blue-600"><Camera size={18} /></div>
-                                            カメラで撮影
-                                        </button>
-                                        <button
-                                            className="w-full flex items-center gap-3 px-4 py-3 text-left text-earth-800 hover:bg-earth-100 transition-colors font-bold"
-                                            onClick={() => galleryInputRef.current?.click()}
-                                        >
-                                            <div className="bg-green-100 p-2 rounded-full text-green-600"><ImageIcon size={18} /></div>
-                                            写真から選ぶ
-                                        </button>
-                                    </div>
+                            {/* Text Input */}
+                            <textarea
+                                value={isReplayMode ? replayInputText : inputText}
+                                onChange={(e) => {
+                                    if (!isReplayMode) setInputText(e.target.value);
+                                }}
+                                onKeyDown={handleKeyDown}
+                                disabled={loading || isProcessingImage}
+                                readOnly={isReplayMode}
+                                placeholder={!currentMission ? "調査の条件を入力..." : "メッセージを入力..."}
+                                className={`flex-1 px-4 py-3 text-lg bg-white border border-earth-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-earth-800 resize-none overflow-hidden min-h-[50px] max-h-[120px] ${isReplayMode ? 'cursor-default' : ''}`}
+                                rows="1"
+                            />
+
+                            <button
+                                id="send-btn"
+                                onClick={handleSend}
+                                disabled={(!isReplayMode && (loading || isProcessingImage || (!inputText.trim() && !imageBase64 && currentMission)))}
+                                className={`p-3 md:p-4 rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center shrink-0 ${isReplayMode ? (isPlaying ? 'bg-amber-600 text-white hover:bg-amber-700' : 'bg-earth-800 text-earth-100 hover:bg-earth-900') : 'bg-earth-800 text-earth-100 hover:bg-earth-900'}`}
+                                aria-label={isReplayMode ? (isAutoReplayMode ? "再生トグル" : "次へ進む") : "送信"}
+                                title={isReplayMode ? (isAutoReplayMode ? "再生/一時停止" : "次へ進む") : "送信"}
+                            >
+                                {loading || (isReplayMode && isPlaying && !isAutoReplayMode && isReplayTyping) ? (
+                                    <Loader2 className="animate-spin" size={24} />
+                                ) : (
+                                    isReplayMode && isAutoReplayMode && isPlaying ? <Pause size={24} /> : <Send size={24} />
                                 )}
-
-                                {/* Attach Button (Toggles Menu) */}
-                                <button
-                                    onClick={() => setIsImageMenuOpen(!isImageMenuOpen)}
-                                    disabled={loading || isProcessingImage}
-                                    className={`p-3 md:p-4 rounded-xl border-2 hover:bg-earth-300 transition-colors disabled:opacity-50 ${isImageMenuOpen ? 'bg-earth-300 border-earth-400 text-earth-800' : 'bg-earth-200 border-earth-300 text-earth-700'}`}
-                                    title="写真を添付"
-                                    aria-label="写真を添付メニューを開く"
-                                >
-                                    {isProcessingImage ? <Loader2 className="animate-spin" size={24} /> : <Camera size={24} />}
-                                </button>
-
-                                {/* Text Input */}
-                                <textarea
-                                    value={inputText}
-                                    onChange={(e) => setInputText(e.target.value)}
-                                    onKeyDown={handleKeyDown}
-                                    disabled={loading || isProcessingImage}
-                                    placeholder={!currentMission ? "調査の条件を入力..." : "メッセージを入力..."}
-                                    className="flex-1 px-4 py-3 text-lg bg-white border border-earth-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-earth-800 resize-none overflow-hidden min-h-[50px] max-h-[120px]"
-                                    rows="1"
-                                />
-
-                                <button
-                                    id="send-btn"
-                                    onClick={handleSend}
-                                    disabled={loading || isProcessingImage || (!inputText.trim() && !imageBase64 && currentMission)}
-                                    className="p-3 md:p-4 bg-earth-800 text-earth-100 rounded-xl hover:bg-earth-900 transition-colors disabled:opacity-50 flex items-center justify-center shrink-0"
-                                    aria-label="送信"
-                                >
-                                    {loading ? <Loader2 className="animate-spin" size={24} /> : <Send size={24} />}
-                                </button>
-                            </div>
-                        </>
-                    )}
+                            </button>
+                        </div>
+                    </>
                 </div>
             </div>
         </div>
