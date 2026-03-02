@@ -385,13 +385,13 @@ export default function SettingsPath({
                 {/* データの初期化 */}
                 <div className="space-y-3 pt-2">
                     <p className="text-sm font-semibold text-red-700">データの初期化 (Danger Zone)</p>
-                    <p className="text-xs text-earth-700">これまで獲得した「称号」と「通算スコア」のデータを初期化します。この操作は取り消せません。</p>
+                    <p className="text-xs text-earth-700">これまで獲得した「フィールドノートの知見」と「信頼度スコア」のデータを初期化します。この操作は取り消せません。</p>
                     <div className="flex justify-start">
                         <button
                             type="button"
                             className="px-4 py-2 bg-red-100 text-red-700 font-bold rounded-lg border border-red-300 hover:bg-red-200 transition-colors"
                             onClick={() => {
-                                if (window.confirm("本当に称号とスコアデータを初期化しますか？\n（この操作は元に戻せません）")) {
+                                if (window.confirm("本当にフィールドノート記録と信頼度データを初期化しますか？\n（この操作は元に戻せません）")) {
                                     onClearData();
                                 }
                             }}

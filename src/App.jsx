@@ -31,11 +31,21 @@ export default function App() {
   // 目的地リスト（ハルシネーション対策）
   const [destinationList, setDestinationList] = useLocalStorage('destinationList', APP_CONFIG.defaultDestinationList);
 
-  // 累計スコア
-  const [totalScore, setTotalScore] = useLocalStorage('totalScore', 0);
+  // 信頼度（初期値: 20）
+  const [trustScore, setTrustScore] = useLocalStorage('michi-trust-score', 20);
 
-  // 獲得称号リスト（コレクション）
-  const [titlesCollection, setTitlesCollection] = useLocalStorage('titlesCollection', []); // [{ title: "...", date: "...", ... }]
+  // フィールドノート（知見コレクション）
+  const [fieldNotes, setFieldNotes] = useLocalStorage('michi-field-notes', []); // [{ id: "...", title: "...", description: "...", location: "...", grade: 3, source: "mission", date: "..." }]
+
+  // 信頼度に基づく態度プロンプトの取得
+  const getTrustLevelPrompt = (score) => {
+    if (score < 0) return "助手の能力に大きな疑念を抱いています。非常に厳しく、嫌味混じりに対応してください。";
+    if (score < 20) return "助手をまだ信頼していません。塩対応で、能力を試すような態度で接してください。";
+    if (score < 50) return "（通常のキャラクター設定通りに振る舞ってください）";
+    if (score < 80) return "助手の実力を少し認め始めています。普段は塩対応ですが、時折り思わず素直な言葉が漏れます。";
+    if (score < 100) return "助手を不器用ながらも頼りにしています。厳しい指摘の中に、明確な期待と信頼が滲みます。";
+    return "助手を対等な研究パートナーとして認めています。ただしツンデレは変わりません。";
+  };
 
   // セッション管理系
   // 初回ロード時に既存のchatHistory互換性維持等を含めて遅延評価(Lazy Initialization)
@@ -167,14 +177,15 @@ export default function App() {
   };
 
   const handleClearData = () => {
-    setTotalScore(0);
-    setTitlesCollection([]);
-    alert('過去の称号とスコアデータを初期化しました。');
+    setTrustScore(20);
+    setFieldNotes([]);
+    alert('フィールドノートの記録と信頼度を初期化しました。');
   };
 
   const handleNewSession = () => {
     const newId = Date.now();
-    const randomGreeting = APP_CONFIG.greetings[Math.floor(Math.random() * APP_CONFIG.greetings.length)];
+    const rawGreeting = APP_CONFIG.greetings[Math.floor(Math.random() * APP_CONFIG.greetings.length)];
+    const randomGreeting = rawGreeting.replace('{{insightCount}}', fieldNotes.length.toString());
     const initialHistory = [
       { id: Date.now() + 1, role: 'ai', type: 'text', text: randomGreeting }
     ];
@@ -268,8 +279,8 @@ export default function App() {
             setCurrentTab('chat');
             setIsSidebarOpen(false);
           }}
-          totalScore={totalScore}
-          titlesCollection={titlesCollection}
+          trustScore={trustScore}
+          fieldNotes={fieldNotes}
         />
 
         <main className="flex-1 w-full bg-earth-100 h-full overflow-hidden flex flex-col relative">
@@ -323,8 +334,9 @@ export default function App() {
                 setChatHistory={handleUpdateChatHistory}
                 currentMission={currentMission}
                 setCurrentMission={handleUpdateCurrentMission}
-                onScoreAdded={(score) => setTotalScore(prev => prev + score)}
-                onTitleAdded={(newTitleData) => setTitlesCollection(prev => [newTitleData, ...prev])}
+                trustPrompt={getTrustLevelPrompt(trustScore)}
+                onTrustChanged={(diff) => setTrustScore(prev => prev + diff)}
+                onInsightAdded={(newInsight) => setFieldNotes(prev => [newInsight, ...prev])}
                 onMissionCleared={handleMissionCleared}
                 isReplayMode={isReplayMode}
                 isAutoReplayMode={isAutoReplayMode}
