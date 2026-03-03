@@ -12,6 +12,10 @@ export default function SettingsPath({
     avatarAngry, setAvatarAngry,
     avatarJoy, setAvatarJoy,
     avatarDisgust, setAvatarDisgust,
+    avatarBlush, setAvatarBlush,
+    avatarSparkle, setAvatarSparkle,
+    avatarStare, setAvatarStare,
+    avatarSad, setAvatarSad,
     basePrompt, setBasePrompt,
     prompt1, setPrompt1,
     prompt2, setPrompt2,
@@ -24,6 +28,10 @@ export default function SettingsPath({
     const angryInputRef = useRef(null);
     const joyInputRef = useRef(null);
     const disgustInputRef = useRef(null);
+    const blushInputRef = useRef(null);
+    const sparkleInputRef = useRef(null);
+    const stareInputRef = useRef(null);
+    const sadInputRef = useRef(null);
 
     // 画像クロップ用ステート
     const [isCropping, setIsCropping] = useState(false);
@@ -257,6 +265,86 @@ export default function SettingsPath({
                                     <div className="flex gap-1.5 w-full">
                                         <Button variant="secondary" onClick={(e) => { e.preventDefault(); handleAdjustImage(avatarDisgust || APP_CONFIG.defaultAvatarDisgust, setAvatarDisgust); }} className="flex-1 text-xs py-1 px-1">画像を調整</Button>
                                         <Button variant="secondary" onClick={(e) => { e.preventDefault(); disgustInputRef.current?.click(); }} className="flex-1 text-xs py-1 px-1">画像を変更</Button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 照れ */}
+                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200 relative">
+                                <div className="w-12 h-12 rounded-full bg-earth-200 border-2 border-dashed border-earth-300 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                    {avatarBlush ? <img src={avatarBlush} alt="Blush" className="w-full h-full object-cover" width={48} height={48} /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
+                                </div>
+                                <div className="flex-1">
+                                    <div className="text-xs font-bold text-earth-800 mb-1 flex justify-between items-center">
+                                        <span>照れ / ツンデレ</span>
+                                        {avatarBlush !== APP_CONFIG.defaultAvatarBlush && (
+                                            <button type="button" onClick={() => setAvatarBlush(APP_CONFIG.defaultAvatarBlush)} className="text-[10px] text-blue-600 underline">デフォルトに戻す</button>
+                                        )}
+                                    </div>
+                                    <input type="file" accept="image/*" ref={blushInputRef} onChange={(e) => handleImageUpload(e, setAvatarBlush)} className="hidden" />
+                                    <div className="flex gap-1.5 w-full">
+                                        <Button variant="secondary" onClick={(e) => { e.preventDefault(); handleAdjustImage(avatarBlush || APP_CONFIG.defaultAvatarBlush, setAvatarBlush); }} className="flex-1 text-xs py-1 px-1">画像を調整</Button>
+                                        <Button variant="secondary" onClick={(e) => { e.preventDefault(); blushInputRef.current?.click(); }} className="flex-1 text-xs py-1 px-1">画像を変更</Button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 興奮 */}
+                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200 relative">
+                                <div className="w-12 h-12 rounded-full bg-earth-200 border-2 border-dashed border-earth-300 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                    {avatarSparkle ? <img src={avatarSparkle} alt="Sparkle" className="w-full h-full object-cover" width={48} height={48} /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
+                                </div>
+                                <div className="flex-1">
+                                    <div className="text-xs font-bold text-earth-800 mb-1 flex justify-between items-center">
+                                        <span>興奮 / キラキラ</span>
+                                        {avatarSparkle !== APP_CONFIG.defaultAvatarSparkle && (
+                                            <button type="button" onClick={() => setAvatarSparkle(APP_CONFIG.defaultAvatarSparkle)} className="text-[10px] text-blue-600 underline">デフォルトに戻す</button>
+                                        )}
+                                    </div>
+                                    <input type="file" accept="image/*" ref={sparkleInputRef} onChange={(e) => handleImageUpload(e, setAvatarSparkle)} className="hidden" />
+                                    <div className="flex gap-1.5 w-full">
+                                        <Button variant="secondary" onClick={(e) => { e.preventDefault(); handleAdjustImage(avatarSparkle || APP_CONFIG.defaultAvatarSparkle, setAvatarSparkle); }} className="flex-1 text-xs py-1 px-1">画像を調整</Button>
+                                        <Button variant="secondary" onClick={(e) => { e.preventDefault(); sparkleInputRef.current?.click(); }} className="flex-1 text-xs py-1 px-1">画像を変更</Button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ジト目 */}
+                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200 relative">
+                                <div className="w-12 h-12 rounded-full bg-earth-200 border-2 border-dashed border-earth-300 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                    {avatarStare ? <img src={avatarStare} alt="Stare" className="w-full h-full object-cover" width={48} height={48} /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
+                                </div>
+                                <div className="flex-1">
+                                    <div className="text-xs font-bold text-earth-800 mb-1 flex justify-between items-center">
+                                        <span>ジト目 / 呆れ</span>
+                                        {avatarStare !== APP_CONFIG.defaultAvatarStare && (
+                                            <button type="button" onClick={() => setAvatarStare(APP_CONFIG.defaultAvatarStare)} className="text-[10px] text-blue-600 underline">デフォルトに戻す</button>
+                                        )}
+                                    </div>
+                                    <input type="file" accept="image/*" ref={stareInputRef} onChange={(e) => handleImageUpload(e, setAvatarStare)} className="hidden" />
+                                    <div className="flex gap-1.5 w-full">
+                                        <Button variant="secondary" onClick={(e) => { e.preventDefault(); handleAdjustImage(avatarStare || APP_CONFIG.defaultAvatarStare, setAvatarStare); }} className="flex-1 text-xs py-1 px-1">画像を調整</Button>
+                                        <Button variant="secondary" onClick={(e) => { e.preventDefault(); stareInputRef.current?.click(); }} className="flex-1 text-xs py-1 px-1">画像を変更</Button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 悲しみ */}
+                            <div className="flex items-center gap-3 bg-earth-100 p-2 rounded-lg border border-earth-200 relative">
+                                <div className="w-12 h-12 rounded-full bg-earth-200 border-2 border-dashed border-earth-300 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                    {avatarSad ? <img src={avatarSad} alt="Sad" className="w-full h-full object-cover" width={48} height={48} /> : <ImagePlus className="text-earth-300 w-5 h-5" />}
+                                </div>
+                                <div className="flex-1">
+                                    <div className="text-xs font-bold text-earth-800 mb-1 flex justify-between items-center">
+                                        <span>悲しみ / 困惑</span>
+                                        {avatarSad !== APP_CONFIG.defaultAvatarSad && (
+                                            <button type="button" onClick={() => setAvatarSad(APP_CONFIG.defaultAvatarSad)} className="text-[10px] text-blue-600 underline">デフォルトに戻す</button>
+                                        )}
+                                    </div>
+                                    <input type="file" accept="image/*" ref={sadInputRef} onChange={(e) => handleImageUpload(e, setAvatarSad)} className="hidden" />
+                                    <div className="flex gap-1.5 w-full">
+                                        <Button variant="secondary" onClick={(e) => { e.preventDefault(); handleAdjustImage(avatarSad || APP_CONFIG.defaultAvatarSad, setAvatarSad); }} className="flex-1 text-xs py-1 px-1">画像を調整</Button>
+                                        <Button variant="secondary" onClick={(e) => { e.preventDefault(); sadInputRef.current?.click(); }} className="flex-1 text-xs py-1 px-1">画像を変更</Button>
                                     </div>
                                 </div>
                             </div>

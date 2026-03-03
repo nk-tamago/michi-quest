@@ -14,6 +14,10 @@ export default function ChatThread({
     avatarAngry,
     avatarJoy,
     avatarDisgust,
+    avatarBlush,
+    avatarSparkle,
+    avatarStare,
+    avatarSad,
     basePrompt,
     prompt1,
     prompt2,
@@ -191,6 +195,7 @@ export default function ChatThread({
         };
         window.addEventListener('keydown', handleReplayKey);
         return () => window.removeEventListener('keydown', handleReplayKey);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isReplayMode, chatHistory.length]);
 
     // Auto-scroll to bottom when chat updates or replay advances
@@ -359,7 +364,6 @@ export default function ChatThread({
             const finalPrompt = basePrompt + "\n\n【ミチ・ノマの現在の態度（信頼度に基づく）】\n" + trustPrompt + "\n\n" + prompt2;
             const resultText = await evaluateReport(apiKey, aiModel, finalPrompt, currentMission || "調査対象不明", imageBase64, chatHistory, currentInput);
 
-            let displayMsg = resultText;
             let earnedGrade = null;
             let earnedTitle = null;
 
@@ -768,6 +772,10 @@ export default function ChatThread({
                                             avatarAngry={msg.role === 'ai' ? avatarAngry : null}
                                             avatarJoy={msg.role === 'ai' ? avatarJoy : null}
                                             avatarDisgust={msg.role === 'ai' ? avatarDisgust : null}
+                                            avatarBlush={msg.role === 'ai' ? avatarBlush : null}
+                                            avatarSparkle={msg.role === 'ai' ? avatarSparkle : null}
+                                            avatarStare={msg.role === 'ai' ? avatarStare : null}
+                                            avatarSad={msg.role === 'ai' ? avatarSad : null}
                                             isUser={msg.role === 'user'}
                                             timestamp={msg.id}
                                         />

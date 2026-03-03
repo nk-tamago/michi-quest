@@ -22,6 +22,10 @@ export default function App() {
   const [avatarAngry, setAvatarAngry] = useLocalStorage('aiAvatarAngry', APP_CONFIG.defaultAvatarAngry);
   const [avatarJoy, setAvatarJoy] = useLocalStorage('aiAvatarJoy', APP_CONFIG.defaultAvatarJoy);
   const [avatarDisgust, setAvatarDisgust] = useLocalStorage('aiAvatarDisgust', APP_CONFIG.defaultAvatarDisgust);
+  const [avatarBlush, setAvatarBlush] = useLocalStorage('aiAvatarBlush', APP_CONFIG.defaultAvatarBlush);
+  const [avatarSparkle, setAvatarSparkle] = useLocalStorage('aiAvatarSparkle', APP_CONFIG.defaultAvatarSparkle);
+  const [avatarStare, setAvatarStare] = useLocalStorage('aiAvatarStare', APP_CONFIG.defaultAvatarStare);
+  const [avatarSad, setAvatarSad] = useLocalStorage('aiAvatarSad', APP_CONFIG.defaultAvatarSad);
 
   const [basePrompt, setBasePrompt] = useLocalStorage('aiBasePrompt', APP_CONFIG.baseCharacterPrompt);
   const [prompt1, setPrompt1] = useLocalStorage('aiPrompt1', APP_CONFIG.defaultPrompt1);
@@ -293,6 +297,10 @@ export default function App() {
                 avatarAngry={avatarAngry} setAvatarAngry={setAvatarAngry}
                 avatarJoy={avatarJoy} setAvatarJoy={setAvatarJoy}
                 avatarDisgust={avatarDisgust} setAvatarDisgust={setAvatarDisgust}
+                avatarBlush={avatarBlush} setAvatarBlush={setAvatarBlush}
+                avatarSparkle={avatarSparkle} setAvatarSparkle={setAvatarSparkle}
+                avatarStare={avatarStare} setAvatarStare={setAvatarStare}
+                avatarSad={avatarSad} setAvatarSad={setAvatarSad}
                 basePrompt={basePrompt} setBasePrompt={setBasePrompt}
                 prompt1={prompt1} setPrompt1={setPrompt1}
                 prompt2={prompt2} setPrompt2={setPrompt2}
@@ -325,6 +333,10 @@ export default function App() {
                 avatarAngry={avatarAngry}
                 avatarJoy={avatarJoy}
                 avatarDisgust={avatarDisgust}
+                avatarBlush={avatarBlush}
+                avatarSparkle={avatarSparkle}
+                avatarStare={avatarStare}
+                avatarSad={avatarSad}
                 basePrompt={basePrompt}
                 prompt1={prompt1}
                 prompt2={prompt2}
