@@ -30,6 +30,6 @@ description: MichiQuestの開発の進め方。ドキュメント先行、段階
 コードを記述する際（特にWebデザインやReactの実装）は、以下の既存スキルルールを必ず読み込み、その内容に従ってください。
 
 - **Webデザイン全般**:
-  `michi-quest\.agents\skills\web-design-guidelines\SKILL.md` を厳守すること。
+  skill: web-design-guidelines を参照して厳守すること。
 - **Reactの実装・ベストプラクティス**:
-  `michi-quest\.agents\skills\vercel-react-best-practices\SKILL.md` （およびその配下のrules）を厳守すること。
+  skill: vercel-react-best-practices （およびその配下のrules） を参照して厳守すること。
