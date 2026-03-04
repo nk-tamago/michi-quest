@@ -78,7 +78,7 @@ export default function App() {
   // アクティブなセッションから派生状態 (Derived State) としてデータを計算
   // これにより不要な useEffect での同期や state 再描画を防ぎます
   const activeSession = sessions.find(s => s.id === currentSessionId);
-  const chatHistory = activeSession?.history || [];
+  const chatHistory = (activeSession?.history || []).filter(msg => msg);
   const currentMission = activeSession?.currentMission || '';
   const currentMissionArea = activeSession?.currentMissionArea || null;
 
@@ -188,16 +188,11 @@ export default function App() {
 
   const handleNewSession = () => {
     const newId = Date.now();
-    const rawGreeting = APP_CONFIG.greetings[Math.floor(Math.random() * APP_CONFIG.greetings.length)];
-    const randomGreeting = rawGreeting.replace('{{insightCount}}', fieldNotes.length.toString());
-    const initialHistory = [
-      { id: Date.now() + 1, role: 'ai', type: 'text', text: randomGreeting }
-    ];
 
     // 最初の定型文の最初の一部などをタイトルにする（後で調査生成時に上書きされる想定）
     const initialTitle = "調査対象を選定中...";
 
-    const newSession = { id: newId, title: initialTitle, history: initialHistory, currentMission: '', isCleared: false };
+    const newSession = { id: newId, title: initialTitle, history: [], currentMission: '', isCleared: false };
     setSessions(prev => [newSession, ...prev]);
     setCurrentSessionId(newId);
     setCurrentTab('chat');
@@ -251,7 +246,7 @@ export default function App() {
 
   // Extract photo locations from chat history for markers
   const photoMarkers = (activeSession?.history || [])
-    .filter(msg => msg.role === 'user' && msg.type === 'image' && msg.location)
+    .filter(msg => msg && msg.role === 'user' && msg.type === 'image' && msg.location)
     .map(msg => ({
       position: [msg.location.lat, msg.location.lng],
       popupText: `撮影地点: ${msg.text.slice(0, 20)}...`,
@@ -327,6 +322,7 @@ export default function App() {
               </div>
             ) : (
               <ChatThread
+                key={currentSessionId}
                 apiKey={apiKey}
                 aiModel={aiModel}
                 avatarData={avatarData}
@@ -346,6 +342,7 @@ export default function App() {
                 setChatHistory={handleUpdateChatHistory}
                 currentMission={currentMission}
                 setCurrentMission={handleUpdateCurrentMission}
+                insightCount={fieldNotes.length}
                 trustPrompt={getTrustLevelPrompt(trustScore)}
                 onTrustChanged={(diff) => setTrustScore(prev => prev + diff)}
                 onInsightAdded={(newInsight) => setFieldNotes(prev => [newInsight, ...prev])}

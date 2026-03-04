@@ -28,3 +28,5 @@ src_app_eslint.json
 lint-output-fix.json
 lint-output.txt
 diff.txt
+test_regex.js
+test_script.js

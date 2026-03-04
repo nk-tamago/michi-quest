@@ -6,6 +6,7 @@ import { generateMission, evaluateReport, verifyLocationExists, chatWithOperator
 import { resizeImage } from '../utils/imageUtils';
 import { getGPSFromImage } from '../utils/exifUtils';
 import { APP_CONFIG } from '../config';
+import { splitMessageByEmotion } from '../utils/textUtils';
 
 export default function ChatThread({
     apiKey,
@@ -27,6 +28,7 @@ export default function ChatThread({
     setChatHistory,
     currentMission,
     setCurrentMission,
+    insightCount = 0,
     trustPrompt,
     onTrustChanged,
     onInsightAdded,
@@ -59,35 +61,49 @@ export default function ChatThread({
     const [pendingEvaluation, setPendingEvaluation] = useState(null);
     const [isEvaluating, setIsEvaluating] = useState(false);
 
-    // 表示用の履歴配列（リプレイモード時はスライスする）
-    const displayedHistory = isReplayMode ? chatHistory.slice(0, replayIndex + 1) : chatHistory;
+    // [ADD] 挨拶の重複生成防止用フラグ（Strict Mode対策）
+    const hasGeneratedGreeting = useRef(false);
+
+    // [ADD] 複数のメッセージ（AIの連続発言）を時間差で追加していく共通関数
+    const addMessagesWithDelay = (messages, delayMs = 600) => {
+        if (!messages || messages.length === 0) return;
+
+        // 即座に追加する1つ目
+        setChatHistory(prev => [...prev, messages[0]]);
+
+        // 2つ目以降がある場合は時間差で順番に追加
+        if (messages.length > 1) {
+            let i = 1;
+            const interval = setInterval(() => {
+                const msgToAdd = messages[i];
+                if (msgToAdd) {
+                    setChatHistory(prev => [...prev, msgToAdd]);
+                }
+                i++;
+                if (i >= messages.length) clearInterval(interval);
+            }, delayMs);
+        }
+    };
+
+    // 初期マウント時の挨拶生成とディレイ表示
+    useEffect(() => {
+        if (!isReplayMode && chatHistory.length === 0 && !hasGeneratedGreeting.current) {
+            hasGeneratedGreeting.current = true;
+            const rawGreeting = APP_CONFIG.greetings[Math.floor(Math.random() * APP_CONFIG.greetings.length)];
+            const randomGreeting = rawGreeting.replace('{{insightCount}}', insightCount.toString());
+            const greetingMessages = splitMessageByEmotion(randomGreeting, Date.now() + 1, 'ai').map(msg => ({ ...msg, isGreeting: true }));
+
+            addMessagesWithDelay(greetingMessages);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isReplayMode, insightCount]); // 初回マウント時のみ実行させたいが、依存配列がないと警告が出るため最小限に絞る
+
+    // 表示用の履歴配列（リプレイモード時は replayIndexでスライス）
+    const displayedHistory = isReplayMode
+        ? chatHistory.slice(0, replayIndex + 1)
+        : chatHistory;
 
     // [ADD] 保存された履歴から「評価待ち状態」を復元する判定ロジック
-    useEffect(() => {
-        // 現在評価中なら何もしない
-        if (isEvaluating || chatHistory.length === 0) return;
-
-        // リプレイモード中か通常モードかで、見るべき「最新のメッセージリスト」を切り替える
-        const currentHistory = isReplayMode ? displayedHistory : chatHistory;
-        if (!currentHistory || currentHistory.length === 0) return;
-
-        // 最後のメッセージを見る
-        const lastMsg = currentHistory[currentHistory.length - 1];
-
-        // 最後のメッセージに未処理の「pendingData」が含まれていれば復元（またはリプレイ表示）する
-        if (lastMsg && lastMsg.role === 'ai' && lastMsg.pendingData && !lastMsg.isEvaluationDone) {
-            // すでに同じデータがセットされていなければセット
-            if (!pendingEvaluation || pendingEvaluation.msgId !== lastMsg.id) {
-                setPendingEvaluation({
-                    msgId: lastMsg.id, // 処理後にフラグを立てるためのID
-                    ...lastMsg.pendingData
-                });
-            }
-        } else {
-            // 最新メッセージが該当しないならクリア
-            if (pendingEvaluation) setPendingEvaluation(null);
-        }
-    }, [chatHistory, displayedHistory, isReplayMode, isEvaluating, pendingEvaluation]);
 
     // クリア演出用ステート（全画面アニメーションは廃止、スタンプ表示用にフラグのみ利用）
     const [showClearStamp, setShowClearStamp] = useState(false);
@@ -138,12 +154,27 @@ export default function ChatThread({
                 setReplayImagePreview(null);
             }, 1000); // 1秒ディレイ
         } else {
-            // AI または system：入力中アニメーションを挟んでから表示
-            setIsReplayTyping(true);
-            setTimeout(() => {
-                setIsReplayTyping(false);
-                setReplayIndex(prev => prev + 1);
-            }, 1500); // 1.5秒待機
+            // AI または system
+            const currentMsg = chatHistory[replayIndex];
+
+            // 直前もAI/systemであれば、入力中アニメーションをスキップしてテンポよく連続表示する
+            const isContinuousAI = currentMsg && (currentMsg.role === 'ai' || currentMsg.role === 'system');
+
+            if (isContinuousAI) {
+                // 連続の場合はタイピング演出なし
+                // 手動送り（!isPlaying）なら即時、自動再生なら少し間を開ける（500ms）
+                const delayMs = isPlaying ? 500 : 0;
+                setTimeout(() => {
+                    setReplayIndex(prev => prev + 1);
+                }, delayMs);
+            } else {
+                // 通常の入力中アニメーション
+                setIsReplayTyping(true);
+                setTimeout(() => {
+                    setIsReplayTyping(false);
+                    setReplayIndex(prev => prev + 1);
+                }, 1500); // 1.5秒待機
+            }
         }
     }, [replayIndex, chatHistory]);
 
@@ -288,8 +319,10 @@ export default function ChatThread({
                 // リトライ上限に達した場合でも、取得できた最後の調査依頼は採用する
             }
 
-            const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'text', text: missionText };
-            setChatHistory(prev => [...prev, aiMsg]);
+            // AREAタグは履歴に不要なのでここで削除してから分割する（ChatBubble側の負担も減る）
+            const cleanMissionText = missionText.replace(/\[AREA:[\s\S]*?\]/ig, '').trim();
+            const aiMsgParts = splitMessageByEmotion(cleanMissionText, Date.now() + 1, 'ai');
+            addMessagesWithDelay(aiMsgParts);
             setCurrentMission(missionText); // Store the active mission
         } catch (err) {
             setError(err.message || "通信エラーが発生しました");
@@ -367,11 +400,14 @@ export default function ChatThread({
             let earnedGrade = null;
             let earnedTitle = null;
 
-            // PRELUDEタグのパース
+            // PRELUDEタグのパースと、それに続く評価コメント（地の文）の結合取得
             let preludeMsg = "……データを開示しますよ。";
-            const preludeMatch = resultText.match(/\[PRELUDE:\s*([\s\S]*?)(?:\]?\s*(?=\[(?:GRADE|INSIGHT|ANNOUNCE|AREA):)|\]?\s*$)/i);
+            const preludePattern = /\[PRELUDE:\s*((?:\[Emotion:[^\]]*\]|[^\]])*)\]([\s\S]*?)(?=\[(?:GRADE|INSIGHT|ANNOUNCE|AREA):|$)/i;
+            const preludeMatch = resultText.match(preludePattern);
             if (preludeMatch) {
-                preludeMsg = preludeMatch[1].trim();
+                const preludeInside = preludeMatch[1].trim();
+                const descriptiveText = preludeMatch[2].trim();
+                preludeMsg = (preludeInside + (descriptiveText ? '\n\n' + descriptiveText : '')).trim();
             }
 
             // GRADEタグのパース
@@ -436,24 +472,25 @@ export default function ChatThread({
             const isClear = (earnedGrade !== null && Math.floor(earnedGrade) >= 2);
 
             // まずタメの言葉（PRELUDE）だけをチャット履歴に追加する
+            const preludeParts = splitMessageByEmotion(preludeMsg, Date.now() + 1, 'ai');
+
             // ★ リロード時復元のため、裏データとしてpendingData（評価結果）をメッセージオブジェクトに仕込んでおく
-            const preludeAiMsg = {
-                id: Date.now() + 1,
-                role: 'ai',
-                type: 'text',
-                text: preludeMsg,
-                pendingData: {
+            // ただし分割された場合は「最後の吹き出し」に仕込んでおき、そこで評価待機・評価カード表示のトリガーとする
+            if (preludeParts.length > 0) {
+                preludeParts[preludeParts.length - 1].pendingData = {
                     grade: earnedGrade,
                     title: earnedTitle,
                     announce: announceMsg,
                     isClear: isClear
-                }
-            };
-            setChatHistory(prev => [...prev, preludeAiMsg]);
+                };
+            }
+
+            addMessagesWithDelay(preludeParts);
 
             // Reactのステートにも退避（useEffectで自動復元されるが直後のUI表示のためにもセット）
+            // 最後の吹き出しのIDを退避しておく
             setPendingEvaluation({
-                msgId: preludeAiMsg.id,
+                msgId: preludeParts.length > 0 ? preludeParts[preludeParts.length - 1].id : null,
                 grade: earnedGrade,
                 title: earnedTitle,
                 announce: announceMsg,
@@ -499,15 +536,15 @@ export default function ChatThread({
             // さらに1.5秒後にAIの労いコメント（とクリアスタンプ）を表示
             if (announce) {
                 setTimeout(() => {
-                    const aiMsg = {
-                        id: Date.now(),
-                        role: 'ai',
-                        type: 'text',
-                        text: announce,
-                        isClearMessage: isClear,
-                        clearedTitle: title
-                    };
-                    setChatHistory(prev => [...prev, aiMsg]);
+                    const announceParts = splitMessageByEmotion(announce, Date.now() + 1, 'ai');
+
+                    // クリア演出がある場合、最後のメッセージのプロパティに付与する
+                    if (announceParts.length > 0 && isClear) {
+                        announceParts[announceParts.length - 1].isClearMessage = true;
+                        announceParts[announceParts.length - 1].clearedTitle = title;
+                    }
+
+                    addMessagesWithDelay(announceParts);
                     setIsEvaluating(false);
 
                     if (isClear) {
@@ -602,14 +639,16 @@ export default function ChatThread({
 
             // 全タグのクリーンアップ (withImageに関わらず)
             // ※ EmotionタグはChatBubble側で判定して表示を切り替えてから削除するため、ここでは削除しない
+            // （ここでは他のシステム的な指示タグだけを消しておき、Emotion分割関数に投げる）
             displayMsg = displayMsg.replace(/\[GRADE:[^\]]*\]/ig, '')
                 .replace(/\[INSIGHT:\s*({[\s\S]*?}|[^\]]*)\]/ig, '')
                 .replace(/\[AREA:\s*({[\s\S]*?})\]/ig, '')
-                .replace(/\[ANNOUNCE:\s*([\s\S]*?)(?:\]?\s*(?=\[(?:PRELUDE|GRADE|INSIGHT|AREA):)|\]?\s*$)/ig, '')
+                .replace(/\[ANNOUNCE:\s*((?:\[Emotion:[^\]]*\]|[^\]])*)\]/ig, '')
                 .trim();
 
-            const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'text', text: displayMsg };
-            const newMessages = [aiMsg];
+            const aiMsgParts = splitMessageByEmotion(displayMsg, Date.now() + 1, 'ai');
+            const newMessages = [...aiMsgParts];
+
             if (spontaneousTitle) {
                 newMessages.push({
                     id: Date.now() + 2,
@@ -618,7 +657,8 @@ export default function ChatThread({
                     title: spontaneousTitle
                 });
             }
-            setChatHistory(prev => [...prev, ...newMessages]);
+
+            addMessagesWithDelay(newMessages);
         } catch (err) {
             setError(err.message || "通信エラーが発生しました");
             setChatHistory(prev => prev.filter(msg => msg.id !== userMsg.id));
@@ -674,11 +714,12 @@ export default function ChatThread({
 
     useEffect(() => {
         // 新規作成されたセッションが開かれた時の自動送信
-        // 挨拶機能の追加により初期メッセージが1件入っている状態（chatHistory.length === 1）で、
-        // かつまだ調査対象が生成されていない（currentMission が空）場合に自動で調査要求を送信する。
-        if (!isReplayMode && apiKey && chatHistory.length === 1 && !loading && !currentMission) {
+        // 初期メッセージがすべて「挨拶（isGreeting）」である場合（調査依頼の受信前）に自動で調査要求を送信する。
+        const hasOnlyGreetings = chatHistory.length > 0 && chatHistory.every(msg => msg.isGreeting);
+
+        if (!isReplayMode && apiKey && hasOnlyGreetings && !loading && !currentMission) {
             const timer = setTimeout(() => {
-                if (chatHistory.length === 1 && !loading) {
+                if (!loading && !currentMission) {
                     handleRequestMission(true); // isAuto = true
                 }
             }, 1500); // 挨拶を少し読ませるためのディレイ（1.5秒程度）
@@ -698,7 +739,7 @@ export default function ChatThread({
                         <p className="text-sm mt-2">自動で調査依頼を受信します</p>
                     </div>
                 ) : (
-                    displayedHistory.map((msg) => {
+                    displayedHistory.filter(msg => msg).map((msg) => {
                         // isClearMessageがある場合、スタンプをこのバブルの上に被せる
                         const isStampTarget = msg.isClearMessage && showClearStamp;
 
