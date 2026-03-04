@@ -598,9 +598,10 @@ export default function ChatThread({
                     const areaData = JSON.parse(areaMatch[1]);
                     if (areaData.name) {
                         const exists = await verifyLocationExists(areaData.name);
-                        if (exists) {
-                            setCurrentMission(replyText);
+                        if (!exists) {
+                            console.warn(`Location ${areaData.name} not found but proceeding to update.`);
                         }
+                        setCurrentMission(replyText);
                     } else {
                         setCurrentMission(replyText);
                     }
