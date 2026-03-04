@@ -104,6 +104,25 @@ export default function ChatThread({
         : chatHistory;
 
     // [ADD] 保存された履歴から「評価待ち状態」を復元する判定ロジック
+    useEffect(() => {
+        if (isReplayMode || chatHistory.length === 0 || pendingEvaluation) return;
+
+        // 履歴を後ろから探し、評価完了処理が済んでおらず pendingData を持っているメッセージを探す
+        for (let i = chatHistory.length - 1; i >= 0; i--) {
+            const msg = chatHistory[i];
+            // 評価処理が済んでいる（isEvaluationDone === true）ものは除外
+            if (msg.pendingData && !msg.isEvaluationDone) {
+                setPendingEvaluation({
+                    msgId: msg.id,
+                    grade: msg.pendingData.grade,
+                    title: msg.pendingData.title,
+                    announce: msg.pendingData.announce,
+                    isClear: msg.pendingData.isClear
+                });
+                break;
+            }
+        }
+    }, [chatHistory, isReplayMode, pendingEvaluation]);
 
     // クリア演出用ステート（全画面アニメーションは廃止、スタンプ表示用にフラグのみ利用）
     const [showClearStamp, setShowClearStamp] = useState(false);
@@ -732,7 +751,7 @@ export default function ChatThread({
     return (
         <div className="flex flex-col h-full relative">
             {/* Chat Timeline Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-32">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-48">
                 {displayedHistory.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-earth-500 opacity-50">
                         <MapIcon size={64} className="mb-4 animate-pulse" />
@@ -913,7 +932,7 @@ export default function ChatThread({
             }
 
             {/* Input Area (Bottom Sticky - Same UI for both Modes) */}
-            <div className={`absolute bottom-0 left-0 right-0 bg-earth-100 border-t p-2 sm:p-4 shadow-lg transition-colors ${isReplayMode ? 'border-amber-400' : 'border-earth-300'}`}>
+            <div className={`absolute bottom-0 left-0 right-0 z-40 bg-earth-100 border-t p-2 sm:p-4 shadow-lg transition-colors ${isReplayMode ? 'border-amber-400' : 'border-earth-300'}`}>
                 <div className="max-w-3xl mx-auto">
                     <>
                         {(imagePreview || replayImagePreview) ? (
