@@ -112,6 +112,7 @@
 }
 
 /* prefers-reduced-motion: アニメーション軽減設定への対応 (Web Interface Guidelines) */
+/* ローディングアニメーションが止まってしまったのでコメントアウトする
 @media (prefers-reduced-motion: reduce) {
 
   *,
@@ -122,3 +123,4 @@
     transition-duration: 0.01ms !important;
   }
 }
+*/

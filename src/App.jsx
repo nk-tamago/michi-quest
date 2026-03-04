@@ -22,6 +22,10 @@ export default function App() {
   const [avatarAngry, setAvatarAngry] = useLocalStorage('aiAvatarAngry', APP_CONFIG.defaultAvatarAngry);
   const [avatarJoy, setAvatarJoy] = useLocalStorage('aiAvatarJoy', APP_CONFIG.defaultAvatarJoy);
   const [avatarDisgust, setAvatarDisgust] = useLocalStorage('aiAvatarDisgust', APP_CONFIG.defaultAvatarDisgust);
+  const [avatarBlush, setAvatarBlush] = useLocalStorage('aiAvatarBlush', APP_CONFIG.defaultAvatarBlush);
+  const [avatarSparkle, setAvatarSparkle] = useLocalStorage('aiAvatarSparkle', APP_CONFIG.defaultAvatarSparkle);
+  const [avatarStare, setAvatarStare] = useLocalStorage('aiAvatarStare', APP_CONFIG.defaultAvatarStare);
+  const [avatarSad, setAvatarSad] = useLocalStorage('aiAvatarSad', APP_CONFIG.defaultAvatarSad);
 
   const [basePrompt, setBasePrompt] = useLocalStorage('aiBasePrompt', APP_CONFIG.baseCharacterPrompt);
   const [prompt1, setPrompt1] = useLocalStorage('aiPrompt1', APP_CONFIG.defaultPrompt1);
@@ -74,7 +78,7 @@ export default function App() {
   // アクティブなセッションから派生状態 (Derived State) としてデータを計算
   // これにより不要な useEffect での同期や state 再描画を防ぎます
   const activeSession = sessions.find(s => s.id === currentSessionId);
-  const chatHistory = activeSession?.history || [];
+  const chatHistory = (activeSession?.history || []).filter(msg => msg);
   const currentMission = activeSession?.currentMission || '';
   const currentMissionArea = activeSession?.currentMissionArea || null;
 
@@ -144,7 +148,7 @@ export default function App() {
           title = `📍${areaData.name}`;
         } else if (isInitialTitle && missionValue) {
           const cleanText = missionValue
-            .replace(/\[Emotion:[\s\S]*?\]/ig, '')
+            .replace(/\[Emotion:[^\]]*(?:\]|\n|$)/ig, '')
             .replace(/\[AREA:[\s\S]*?\]/ig, '')
             .trim();
           title = cleanText.slice(0, 15) + (cleanText.length > 15 ? '...' : '');
@@ -184,16 +188,11 @@ export default function App() {
 
   const handleNewSession = () => {
     const newId = Date.now();
-    const rawGreeting = APP_CONFIG.greetings[Math.floor(Math.random() * APP_CONFIG.greetings.length)];
-    const randomGreeting = rawGreeting.replace('{{insightCount}}', fieldNotes.length.toString());
-    const initialHistory = [
-      { id: Date.now() + 1, role: 'ai', type: 'text', text: randomGreeting }
-    ];
 
     // 最初の定型文の最初の一部などをタイトルにする（後で調査生成時に上書きされる想定）
     const initialTitle = "調査対象を選定中...";
 
-    const newSession = { id: newId, title: initialTitle, history: initialHistory, currentMission: '', isCleared: false };
+    const newSession = { id: newId, title: initialTitle, history: [], currentMission: '', isCleared: false };
     setSessions(prev => [newSession, ...prev]);
     setCurrentSessionId(newId);
     setCurrentTab('chat');
@@ -247,7 +246,7 @@ export default function App() {
 
   // Extract photo locations from chat history for markers
   const photoMarkers = (activeSession?.history || [])
-    .filter(msg => msg.role === 'user' && msg.type === 'image' && msg.location)
+    .filter(msg => msg && msg.role === 'user' && msg.type === 'image' && msg.location)
     .map(msg => ({
       position: [msg.location.lat, msg.location.lng],
       popupText: `撮影地点: ${msg.text.slice(0, 20)}...`,
@@ -293,6 +292,10 @@ export default function App() {
                 avatarAngry={avatarAngry} setAvatarAngry={setAvatarAngry}
                 avatarJoy={avatarJoy} setAvatarJoy={setAvatarJoy}
                 avatarDisgust={avatarDisgust} setAvatarDisgust={setAvatarDisgust}
+                avatarBlush={avatarBlush} setAvatarBlush={setAvatarBlush}
+                avatarSparkle={avatarSparkle} setAvatarSparkle={setAvatarSparkle}
+                avatarStare={avatarStare} setAvatarStare={setAvatarStare}
+                avatarSad={avatarSad} setAvatarSad={setAvatarSad}
                 basePrompt={basePrompt} setBasePrompt={setBasePrompt}
                 prompt1={prompt1} setPrompt1={setPrompt1}
                 prompt2={prompt2} setPrompt2={setPrompt2}
@@ -319,12 +322,17 @@ export default function App() {
               </div>
             ) : (
               <ChatThread
+                key={currentSessionId}
                 apiKey={apiKey}
                 aiModel={aiModel}
                 avatarData={avatarData}
                 avatarAngry={avatarAngry}
                 avatarJoy={avatarJoy}
                 avatarDisgust={avatarDisgust}
+                avatarBlush={avatarBlush}
+                avatarSparkle={avatarSparkle}
+                avatarStare={avatarStare}
+                avatarSad={avatarSad}
                 basePrompt={basePrompt}
                 prompt1={prompt1}
                 prompt2={prompt2}
@@ -334,6 +342,7 @@ export default function App() {
                 setChatHistory={handleUpdateChatHistory}
                 currentMission={currentMission}
                 setCurrentMission={handleUpdateCurrentMission}
+                insightCount={fieldNotes.length}
                 trustPrompt={getTrustLevelPrompt(trustScore)}
                 onTrustChanged={(diff) => setTrustScore(prev => prev + diff)}
                 onInsightAdded={(newInsight) => setFieldNotes(prev => [newInsight, ...prev])}
