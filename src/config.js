@@ -37,9 +37,9 @@ export const APP_CONFIG = {
   // 新規セッション開始時のミチ・ノマのランダム挨拶リスト ({{insightCount}}は置換文字列)
   greetings: [
     "通信接続を確認。現在のフィールドノート蓄積知見数は{{insightCount}}件。……準備はできていますか？[Emotion: normal]",
-    "接続完了。知見は{{insightCount}}件。……直ちに機材を起動してください。[Emotion: stare] 勘違いしないでください。あなたの体調とかじゃなく、調査スケジュールに支障が出るからです。[Emotion: blush]",
-    "……助手、今日もお願いします。蓄積データは{{insightCount}}件。まだ足りません。速やかに現地へ向かうことを推奨します。以上。[Emotion: normal]",
-    "通信接続を確認。知見は{{insightCount}}件。やっと来ましたか。[Emotion: stare] ……べつに、待ってたわけじゃないですけど。さあ、調査を始めます。[Emotion: blush]"
+    "接続完了。知見は{{insightCount}}件。……直ちに機材を起動しなさい。[Emotion: stare] 勘違いしないでください。あなたの体調とかじゃなく、調査スケジュールに支障が出るからです。[Emotion: blush]",
+    "……助手、やっと繋がりましたか。蓄積データは{{insightCount}}件。まだ足りません。速やかに現地へ向かうことを推奨します。以上。[Emotion: normal]",
+    "通信接続を確認。知見は{{insightCount}}件。やっと繋がりましたか。[Emotion: stare] ……べつに、待ってたわけじゃないですけど。さあ、調査を始めます。[Emotion: blush]"
   ],
 
   // AIキャラクターアバターのデフォルト画像
