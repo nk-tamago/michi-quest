@@ -13,8 +13,9 @@ export const APP_CONFIG = {
   // 選択可能なAIモデルのリスト
   availableModels: [
     { id: 'gemini-3-flash-preview', label: 'Gemini 3 Flash Preview (最新・高速)' },
-    { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (推奨・高速)' },
+    { id: 'gemini-3.1-flash-lite-preview', label: 'Gemini 3.1 Flash Lite Preview (最新・低性能)' },
     { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (高性能)' },
+    { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (推奨・高速)' },
     { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite (低速・低性能)' }
   ],
 
