@@ -135,6 +135,10 @@ export default function App() {
         if (areaMatch) {
           try {
             areaData = JSON.parse(areaMatch[1]);
+            // 文字列で座標が返ってきた場合の対策：確実に数値型(Number)へ変換する
+            if (areaData.lat !== undefined) areaData.lat = Number(areaData.lat);
+            if (areaData.lng !== undefined) areaData.lng = Number(areaData.lng);
+            if (areaData.r !== undefined) areaData.r = Number(areaData.r);
           } catch (e) {
             console.error("Failed to parse AREA tag", e);
           }
