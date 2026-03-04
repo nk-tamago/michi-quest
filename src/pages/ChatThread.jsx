@@ -369,7 +369,7 @@ export default function ChatThread({
 
             // PRELUDEタグのパース
             let preludeMsg = "……データを開示しますよ。";
-            const preludeMatch = resultText.match(/\[PRELUDE:([\s\S]*?)\]/i);
+            const preludeMatch = resultText.match(/\[PRELUDE:\s*([\s\S]*?)(?:\]?\s*(?=\[(?:GRADE|INSIGHT|ANNOUNCE|AREA):)|\]?\s*$)/i);
             if (preludeMatch) {
                 preludeMsg = preludeMatch[1].trim();
             }
@@ -425,7 +425,7 @@ export default function ChatThread({
 
             // ANNOUNCEタグのパース
             let announceMsg = null;
-            const announceMatch = resultText.match(/\[ANNOUNCE:([\s\S]*?)\]/i);
+            const announceMatch = resultText.match(/\[ANNOUNCE:\s*([\s\S]*?)(?:\]?\s*(?=\[(?:PRELUDE|GRADE|INSIGHT|AREA):)|\]?\s*$)/i);
             if (announceMatch) {
                 announceMsg = announceMatch[1].trim();
             }
@@ -601,11 +601,11 @@ export default function ChatThread({
             }
 
             // 全タグのクリーンアップ (withImageに関わらず)
-            displayMsg = displayMsg.replace(/\[Emotion:[^\]]*\]/ig, '')
+            displayMsg = displayMsg.replace(/\[Emotion:[^\]]*(?:\]|\n|$)/ig, '')
                 .replace(/\[GRADE:[^\]]*\]/ig, '')
                 .replace(/\[INSIGHT:\s*({[\s\S]*?}|[^\]]*)\]/ig, '')
                 .replace(/\[AREA:\s*({[\s\S]*?})\]/ig, '')
-                .replace(/\[ANNOUNCE:([\s\S]*?)\]/ig, '')
+                .replace(/\[ANNOUNCE:\s*([\s\S]*?)(?:\]?\s*(?=\[(?:PRELUDE|GRADE|INSIGHT|AREA):)|\]?\s*$)/ig, '')
                 .trim();
 
             const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'text', text: displayMsg };

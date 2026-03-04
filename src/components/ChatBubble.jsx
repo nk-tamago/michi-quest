@@ -21,11 +21,11 @@ export default function ChatBubble({
         // 全ての感情タグに対応 (末尾に出現するものを優先するために後で複数タグ対応を考慮してgフラグなども考えうるが、基本は1メッセージ1感情か、ストリーミングで随時上書きの想定)
         // ※ストリーミング中の随時切替を行うには正規表現マッチをすべて取得し、最後のものを適用する等の工夫が必要。
         // ここでは最も後ろに出現するEmotionタグを取得する
-        const emotionMatches = [...message.matchAll(/\[Emotion:\s*(angry|joy|disgust|blush|sparkle|stare|sad|normal)\]/ig)];
+        const emotionMatches = [...message.matchAll(/\[Emotion:\s*([a-zA-Z]+)[^\]]*(?:\]|\n|$)/ig)];
         if (emotionMatches.length > 0) {
-            // 最後にマッチしたもの（インラインエモーションの最新状態）を採用
-            const lastMatch = emotionMatches[emotionMatches.length - 1];
-            const emotion = lastMatch[1].toLowerCase();
+            // 最初にマッチしたもの（文章の最初のリアクション）を採用
+            const firstMatch = emotionMatches[0];
+            const emotion = firstMatch[1].toLowerCase();
             if (emotion === 'angry' && avatarAngry) displayAvatar = avatarAngry;
             else if (emotion === 'joy' && avatarJoy) displayAvatar = avatarJoy;
             else if (emotion === 'disgust' && avatarDisgust) displayAvatar = avatarDisgust;
@@ -33,10 +33,10 @@ export default function ChatBubble({
             else if (emotion === 'sparkle' && avatarSparkle) displayAvatar = avatarSparkle;
             else if (emotion === 'stare' && avatarStare) displayAvatar = avatarStare;
             else if (emotion === 'sad' && avatarSad) displayAvatar = avatarSad;
-
-            // メッセージ本文からすべての感情タグを取り除く
-            displayMessage = message.replace(/\[Emotion:\s*(angry|joy|disgust|blush|sparkle|stare|sad|normal)\]/ig, '');
         }
+
+        // メッセージ本文からすべての感情タグを取り除く
+        displayMessage = message.replace(/\[Emotion:[^\]]*(?:\]|\n|$)/ig, '');
 
         // メッセージ本文からAREAタグを取り除く
         displayMessage = displayMessage.replace(/\[AREA:[\s\S]*?\]/ig, '').trim();

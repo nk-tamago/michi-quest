@@ -148,7 +148,7 @@ export default function App() {
           title = `📍${areaData.name}`;
         } else if (isInitialTitle && missionValue) {
           const cleanText = missionValue
-            .replace(/\[Emotion:[\s\S]*?\]/ig, '')
+            .replace(/\[Emotion:[^\]]*(?:\]|\n|$)/ig, '')
             .replace(/\[AREA:[\s\S]*?\]/ig, '')
             .trim();
           title = cleanText.slice(0, 15) + (cleanText.length > 15 ? '...' : '');
