@@ -23,9 +23,9 @@ export default function ChatBubble({
         // ここでは最も後ろに出現するEmotionタグを取得する
         const emotionMatches = [...message.matchAll(/\[Emotion:\s*([a-zA-Z]+)[^\]]*(?:\]|\n|$)/ig)];
         if (emotionMatches.length > 0) {
-            // 最初にマッチしたもの（文章の最初のリアクション）を採用
-            const firstMatch = emotionMatches[0];
-            const emotion = firstMatch[1].toLowerCase();
+            // 最後にマッチしたもの（インラインエモーションの最新状態）を採用
+            const lastMatch = emotionMatches[emotionMatches.length - 1];
+            const emotion = lastMatch[1].toLowerCase();
             if (emotion === 'angry' && avatarAngry) displayAvatar = avatarAngry;
             else if (emotion === 'joy' && avatarJoy) displayAvatar = avatarJoy;
             else if (emotion === 'disgust' && avatarDisgust) displayAvatar = avatarDisgust;

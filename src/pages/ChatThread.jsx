@@ -601,8 +601,8 @@ export default function ChatThread({
             }
 
             // 全タグのクリーンアップ (withImageに関わらず)
-            displayMsg = displayMsg.replace(/\[Emotion:[^\]]*(?:\]|\n|$)/ig, '')
-                .replace(/\[GRADE:[^\]]*\]/ig, '')
+            // ※ EmotionタグはChatBubble側で判定して表示を切り替えてから削除するため、ここでは削除しない
+            displayMsg = displayMsg.replace(/\[GRADE:[^\]]*\]/ig, '')
                 .replace(/\[INSIGHT:\s*({[\s\S]*?}|[^\]]*)\]/ig, '')
                 .replace(/\[AREA:\s*({[\s\S]*?})\]/ig, '')
                 .replace(/\[ANNOUNCE:\s*([\s\S]*?)(?:\]?\s*(?=\[(?:PRELUDE|GRADE|INSIGHT|AREA):)|\]?\s*$)/ig, '')
