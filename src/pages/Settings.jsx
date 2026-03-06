@@ -7,6 +7,7 @@ import { exportData, importData, validateImportData, hasExistingData } from '../
 
 export default function SettingsPath({
     apiKey, setApiKey,
+    googleMapsApiKey, setGoogleMapsApiKey,
     aiModel, setAiModel,
     avatarData, setAvatarData,
     avatarAngry, setAvatarAngry,
@@ -163,6 +164,23 @@ export default function SettingsPath({
                             required
                         />
                         <p className="text-xs text-earth-900/60 mt-1">※取得したキーはブラウザにのみ保存されます</p>
+                    </div>
+
+                    {/* Google Maps API Key */}
+                    <div className="space-y-1">
+                        <label htmlFor="googleMapsApiKey" className="block text-sm font-semibold text-earth-800">Google Maps API キー (必須)</label>
+                        <input
+                            id="googleMapsApiKey"
+                            name="googleMapsApiKey"
+                            autoComplete="off"
+                            type="password"
+                            value={googleMapsApiKey}
+                            onChange={(e) => setGoogleMapsApiKey(e.target.value)}
+                            placeholder="Google Cloud Console で取得したブラウザキーを入力"
+                            className="w-full px-4 py-2 bg-earth-100 border border-earth-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-earth-800 transition-shadow"
+                            required
+                        />
+                        <p className="text-xs text-earth-900/60 mt-1">※取得したキーはブラウザにのみ保存されます（HTTPリファラーの制限推奨）</p>
                     </div>
 
                     {/* AI Model Selection */}
