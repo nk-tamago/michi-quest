@@ -10,6 +10,7 @@ import { splitMessageByEmotion } from '../utils/textUtils';
 
 export default function ChatThread({
     apiKey,
+    googleMapsApiKey,
     aiModel,
     avatarData,
     avatarAngry,
@@ -310,9 +311,16 @@ export default function ChatThread({
                     try {
                         const areaData = JSON.parse(areaMatch[1]);
                         if (areaData.name) {
-                            // 実在チェック
-                            const exists = await verifyLocationExists(areaData.name);
-                            if (exists) {
+                            // 実在チェック (Google Places API)
+                            const locationMatch = await verifyLocationExists(areaData.name, googleMapsApiKey);
+                            if (locationMatch) {
+                                // 取得できた正確な座標で上書きする (オプショナルだけどマップ中心移動が正確になる)
+                                if (locationMatch.lat !== undefined && locationMatch.lng !== undefined) {
+                                    areaData.lat = locationMatch.lat;
+                                    areaData.lng = locationMatch.lng;
+                                    // AREAタグ自体を新しい座標で置換してmissionTextを更新する
+                                    missionText = missionText.replace(areaMatch[1], JSON.stringify(areaData));
+                                }
                                 isValid = true;
                                 break;
                             } else {
@@ -606,7 +614,7 @@ export default function ChatThread({
 
         try {
             const finalPrompt = basePrompt + "\n\n【ミチ・ノマの現在の態度（信頼度に基づく）】\n" + trustPrompt + "\n\n" + prompt3 + (currentMission ? `\n\n【システムデータ】\n現在進行中の調査対象：${currentMission}` : "");
-            const replyText = await chatWithOperator(apiKey, aiModel, finalPrompt, chatHistory, currentInput, withImage ? imageBase64 : null);
+            let replyText = await chatWithOperator(apiKey, aiModel, finalPrompt, chatHistory, currentInput, withImage ? imageBase64 : null);
 
             let displayMsg = replyText;
 
@@ -616,9 +624,13 @@ export default function ChatThread({
                 try {
                     const areaData = JSON.parse(areaMatch[1]);
                     if (areaData.name) {
-                        const exists = await verifyLocationExists(areaData.name);
-                        if (!exists) {
+                        const locationMatch = await verifyLocationExists(areaData.name, googleMapsApiKey);
+                        if (!locationMatch) {
                             console.warn(`Location ${areaData.name} not found but proceeding to update.`);
+                        } else if (locationMatch.lat !== undefined && locationMatch.lng !== undefined) {
+                            areaData.lat = locationMatch.lat;
+                            areaData.lng = locationMatch.lng;
+                            replyText = replyText.replace(areaMatch[1], JSON.stringify(areaData));
                         }
                         setCurrentMission(replyText);
                     } else {

@@ -15,6 +15,7 @@ export default function App() {
   });
 
   const [apiKey, setApiKey] = useLocalStorage('geminiApiKey', '');
+  const [googleMapsApiKey, setGoogleMapsApiKey] = useLocalStorage('googleMapsApiKey', '');
   const [aiModel, setAiModel] = useLocalStorage('geminiAiModel', 'gemini-2.5-flash');
 
   // アバター系
@@ -163,6 +164,13 @@ export default function App() {
         // 既存の仕組みだと判別しづらいので、tagがあれば更新、なければ維持とする
         const nextArea = areaData || s.currentMissionArea;
 
+        // 【修正】 ChatThread 側で更新した座標が string 化されている場合があるため、
+        // 再度確実に数値化して state の missionArea に設定する。
+        if (nextArea && nextArea.lat !== undefined && nextArea.lng !== undefined) {
+          nextArea.lat = Number(nextArea.lat);
+          nextArea.lng = Number(nextArea.lng);
+        }
+
         return {
           ...s,
           currentMission: missionValue,
@@ -218,15 +226,15 @@ export default function App() {
 
   // 初回起動時、APIキーがなければ強制的に設定タブへ
   useEffect(() => {
-    if (!apiKey) {
+    if (!apiKey || !googleMapsApiKey) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentTab('settings');
     }
-  }, [apiKey]);
+  }, [apiKey, googleMapsApiKey]);
 
   const handleTabChange = (tabId) => {
-    if (!apiKey && tabId !== 'settings') {
-      alert("まずは設定画面でGemini APIキーを入力してください。");
+    if ((!apiKey || !googleMapsApiKey) && tabId !== 'settings') {
+      alert("まずは設定画面で「Gemini APIキー」と「Google Maps APIキー」を入力してください。");
       setCurrentTab('settings');
       window.history.replaceState(null, '', `?tab=settings`);
       return;
@@ -236,8 +244,8 @@ export default function App() {
   };
 
   const handleSettingsSave = () => {
-    if (!apiKey) {
-      alert("APIキーは必須です。");
+    if (!apiKey || !googleMapsApiKey) {
+      alert("「Gemini APIキー」と「Google Maps APIキー」の両方が必須です。");
       return;
     }
     alert("設定を保存しました。");
@@ -291,6 +299,7 @@ export default function App() {
             <div className="flex-1 overflow-y-auto w-full">
               <Settings
                 apiKey={apiKey} setApiKey={setApiKey}
+                googleMapsApiKey={googleMapsApiKey} setGoogleMapsApiKey={setGoogleMapsApiKey}
                 aiModel={aiModel} setAiModel={setAiModel}
                 avatarData={avatarData} setAvatarData={setAvatarData}
                 avatarAngry={avatarAngry} setAvatarAngry={setAvatarAngry}
@@ -328,6 +337,7 @@ export default function App() {
               <ChatThread
                 key={currentSessionId}
                 apiKey={apiKey}
+                googleMapsApiKey={googleMapsApiKey}
                 aiModel={aiModel}
                 avatarData={avatarData}
                 avatarAngry={avatarAngry}
@@ -364,6 +374,7 @@ export default function App() {
           {currentTab === 'map' && (
             <div className="flex-1 h-full w-full">
               <MapInteractive
+                googleMapsApiKey={googleMapsApiKey}
                 center={userLocation || mapCenter}
                 zoom={15}
                 userLocation={userLocation}

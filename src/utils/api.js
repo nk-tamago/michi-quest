@@ -160,31 +160,55 @@ export const evaluateReport = async (apiKey, modelName = 'gemini-2.5-flash', sys
 };
 
 /**
- * OpenStreetMap Nominatim API を用いて、地名が実在するか確認する
+ * Google Maps Places API (Text Search) を用いて、地名が実在するか確認する
+ * FieldMaskを指定して Essentials (Places API Text Search Essentials) の無料枠（月1万回）に収める
  * @param {string} query - 検索する地名や施設名
- * @returns {Promise<boolean>} 実在する場合は true、見つからない場合は false
+ * @param {string} apiKey - Google Maps API Key
+ * @returns {Promise<boolean|object>} 実在する場合は座標オブジェクト{lat, lng}、見つからない場合は false
  */
-export const verifyLocationExists = async (query) => {
-  if (!query) return false;
+export const verifyLocationExists = async (query, apiKey) => {
+  if (!query || !apiKey) return false;
+  
   try {
-    // Nominatimの利用規約（1秒間に1回以下のリクエストなど）に配慮
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
+    const url = 'https://places.googleapis.com/v1/places:searchText';
+    const requestBody = {
+      textQuery: query,
+      languageCode: 'ja'
+    };
+
     const response = await fetch(url, {
+      method: 'POST',
       headers: {
-        'User-Agent': 'MichiQuestApp/1.0' // API規約としてUser-Agentが推奨される
-      }
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+        // Essentials枠に収めるため、名前と座標情報のみを要求する
+        'X-Goog-FieldMask': 'places.displayName,places.location'
+      },
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
-      console.warn(`Nominatim API returned status: ${response.status}`);
-      return true; // API制限やエラー時は、ユーザー体験を損なわないよう一旦trueとして通す方針
+      console.warn(`Places API returned status: ${response.status}`);
+      // API制限やエラー時は、ユーザー体験を損なわないよう一旦true相当のダミーを返す設計も考慮可能だが、
+      // 移行フェーズのためまずは厳密にfalse判定か、エラーを投げる
+      return false; 
     }
 
     const data = await response.json();
-    console.log("Nominatim API result for", query, ":", data);
-    return data && data.length > 0;
+    console.log("Places API result for", query, ":", data);
+    
+    // places配列に1件でもデータがあれば実在すると判定し、最初の候補の座標を返す
+    if (data.places && data.places.length > 0 && data.places[0].location) {
+      return {
+        lat: data.places[0].location.latitude,
+        lng: data.places[0].location.longitude
+      };
+    }
+    
+    return false;
   } catch (error) {
-    console.warn("Geocoding verification failed, passing through.", error);
-    return true; // ネットワークエラー等でも進行不能を防ぐため一旦通す設計
+    console.warn("Places API Geocoding verification failed, passing through.", error);
+    // ネットワークエラー等でも進行不能を防ぐため一旦通す設計（呼び出し側でフォールバックさせる）
+    return true; 
   }
 };
