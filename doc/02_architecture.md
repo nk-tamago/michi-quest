@@ -7,11 +7,11 @@ MichiQuest はモダンなフロントエンド技術のみで完結するサー
 *   **ビルドツール**: Vite
 *   **スタイリング**: Tailwind CSS (ユーティリティファーストCSS)
 *   **アイコン**: Lucide React
-*   **地図レンダリング**: Leaflet (`react-leaflet`)
+*   **地図レンダリング**: Google Maps JavaScript API (`@vis.gl/react-google-maps`)
 *   **画像・Exif処理**: `exifr` (GPS座標抽出)、HTML5 Canvas (クライアントサイドでの自動リサイズ)
 *   **外部API**: 
     *   **Google Gemini API**: `gemini-2.5-flash`等のマルチモーダルモデル。チャット対話、ミッション生成、画像解析に使用。
-    *   **OpenStreetMap (OSM) Nominatim API**: AIが生成した目的地名のジオコーディング（実在座標の取得とバリデーション）に使用。
+    *   **Google Maps Platform (Places API / Text Search)**: AIが生成した目的地名のジオコーディング（実在座標の取得とバリデーション）に使用。無料枠適用のため FieldMask を利用。
 
 ## 2. アプリケーション構成
 バックエンド・データベースを持たず、ユーザーのブラウザ・ストレージ（LocalStorage）にデータを保存する完全クライアントサイド型（PWAを想定）で動作します。
@@ -25,7 +25,7 @@ MichiQuest はモダンなフロントエンド技術のみで完結するサー
    |
    |-- (HTTP Requests) --> [ Google Gemini API ] (LLM対話、画像解析)
    |
-   +-- (HTTP Requests) --> [ OSM Nominatim API ] (地理情報の検証)
+   +-- (HTTP Requests) --> [ Google Maps Platform ] (地理情報の検証)
 ```
 
 ## 3. インデックス・ファイル構成

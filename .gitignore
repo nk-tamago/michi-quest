@@ -30,3 +30,4 @@ lint-output.txt
 diff.txt
 test_regex.js
 test_script.js
+build_error.txt

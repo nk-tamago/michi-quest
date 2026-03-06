@@ -1,35 +1,57 @@
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+import { APIProvider, Map, AdvancedMarker, Pin, InfoWindow, useMap } from '@vis.gl/react-google-maps';
 import { LocateFixed } from 'lucide-react';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
 
-// Leaflet default icon fix
-import icon from 'leaflet/dist/images/marker-icon.png';
-import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 
-let DefaultIcon = L.icon({
-    iconUrl: icon,
-    shadowUrl: iconShadow,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41]
-});
 
-L.Marker.prototype.options.icon = DefaultIcon;
+// MapCircle : MapインスタンスにCircleを描画するためのコンポーネント
+const MapCircle = ({ center, radius }) => {
+    const map = useMap(); // contextからmapインスタンスを安全に取得
 
-// Component to update map center when props change
-function MapUpdater({ center, zoom }) {
-    const map = useMap();
     useEffect(() => {
-        if (center) {
-            map.setView(center, zoom);
-        }
-    }, [center, zoom, map]);
+        if (!map || !window.google) return;
+
+        const validRadius = typeof radius === 'number' && radius > 0 ? radius : 500;
+
+        const circle = new window.google.maps.Circle({
+            strokeColor: '#FF0000',
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+            fillColor: '#FF0000',
+            fillOpacity: 0.2,
+            map,
+            center,
+            radius: validRadius,
+        });
+
+        const infoWindow = new window.google.maps.InfoWindow({
+            content: `
+                <div style="text-align: center; font-family: sans-serif; padding: 4px;">
+                    <p style="margin: 0 0 8px 0; font-weight: bold; font-size: 14px;">調査エリア (半径${validRadius}m)</p>
+                    <a href="https://www.google.com/maps/search/?api=1&query=${center.lat},${center.lng}" 
+                       target="_blank" rel="noopener noreferrer" 
+                       style="color: #2563eb; text-decoration: underline; font-size: 12px;">
+                       Google Mapsで開く
+                    </a>
+                </div>
+            `
+        });
+
+        const clickListener = circle.addListener('click', (e) => {
+            infoWindow.setPosition(e.latLng);
+            infoWindow.open(map);
+        });
+
+        return () => {
+            window.google.maps.event.removeListener(clickListener);
+            circle.setMap(null);
+        };
+    }, [map, center, radius]);
     return null;
-}
+};
+
 
 function LocateControl({ onUpdateLocation }) {
-    const map = useMap();
     const [isLoading, setIsLoading] = useState(false);
 
     const handleLocate = () => {
@@ -43,7 +65,6 @@ function LocateControl({ onUpdateLocation }) {
                 const { latitude, longitude } = pos.coords;
                 const newLoc = [latitude, longitude];
                 if (onUpdateLocation) onUpdateLocation(newLoc);
-                map.flyTo(newLoc, 15, { animate: true, duration: 1 });
                 setIsLoading(false);
             },
             (err) => {
@@ -73,7 +94,10 @@ function LocateControl({ onUpdateLocation }) {
     );
 }
 
-export default function MapInteractive({ center = [35.681236, 139.767125], zoom = 13, missionArea, userLocation, onUpdateLocation, markers = [] }) {
+export default function MapInteractive({ googleMapsApiKey, center = [35.681236, 139.767125], zoom = 15, missionArea, userLocation, onUpdateLocation, markers = [] }) {
+    const [mapInstance, setMapInstance] = useState(null);
+    const [selectedMarker, setSelectedMarker] = useState(null);
+
     // 座標が不正（undefined, NaNなど）か判定するヘルパー
     const isValidCoordinate = (coord) => {
         return Array.isArray(coord) && coord.length === 2 &&
@@ -81,88 +105,94 @@ export default function MapInteractive({ center = [35.681236, 139.767125], zoom 
             typeof coord[1] === 'number' && !isNaN(coord[1]);
     };
 
-    const safeCenter = isValidCoordinate(center) ? center : [35.681236, 139.767125];
+    const safeCenter = isValidCoordinate(center)
+        ? { lat: center[0], lng: center[1] }
+        : { lat: 35.681236, lng: 139.767125 };
+
+    // userLocationが更新されたときにマップを中心移動
+    useEffect(() => {
+        if (mapInstance && userLocation && isValidCoordinate(userLocation)) {
+            mapInstance.panTo({ lat: userLocation[0], lng: userLocation[1] });
+        }
+    }, [userLocation, mapInstance]);
+
+    if (!googleMapsApiKey) {
+        return (
+            <div className="h-full w-full flex items-center justify-center bg-gray-100 text-gray-500 p-8 text-center">
+                <p>Google Maps APIキーが設定されていません。<br />設定画面からAPIキーを入力してください。</p>
+            </div>
+        );
+    }
 
     return (
         <div className="h-full w-full relative z-0">
-            <MapContainer center={safeCenter} zoom={zoom} scrollWheelZoom={true} className="h-full w-full" style={{ minHeight: '300px' }}>
-                <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
+            <APIProvider apiKey={googleMapsApiKey}>
+                <Map
+                    defaultCenter={safeCenter}
+                    defaultZoom={zoom}
+                    mapId="michi-quest-map"
+                    className="h-full w-full"
+                    gestureHandling={'greedy'}
+                    disableDefaultUI={true}
+                    onMapLoad={(map) => setMapInstance(map)}
+                >
+                    {/* Mission Area (Circle) */}
+                    {missionArea && typeof missionArea.lat === 'number' && typeof missionArea.lng === 'number' && !isNaN(missionArea.lat) && !isNaN(missionArea.lng) && (
+                        <MapCircle
+                            center={{ lat: missionArea.lat, lng: missionArea.lng }}
+                            radius={missionArea.r}
+                        />
+                    )}
 
-                <MapUpdater center={safeCenter} zoom={zoom} />
+                    {/* User Location */}
+                    {userLocation && isValidCoordinate(userLocation) && (
+                        <AdvancedMarker position={{ lat: userLocation[0], lng: userLocation[1] }} title="現在地">
+                            <Pin background={'#3b82f6'} borderColor={'#1d4ed8'} glyphColor={'#fff'} />
+                        </AdvancedMarker>
+                    )}
 
-                <LocateControl onUpdateLocation={onUpdateLocation} />
+                    {/* Other Markers */}
+                    {markers.map((marker, idx) => {
+                        if (!marker.position || !isValidCoordinate(marker.position)) return null;
 
-                {/* Mission Area (Circle) */}
-                {missionArea && typeof missionArea.lat === 'number' && typeof missionArea.lng === 'number' && !isNaN(missionArea.lat) && !isNaN(missionArea.lng) && (
-                    <Circle
-                        center={[missionArea.lat, missionArea.lng]}
-                        radius={missionArea.r}
-                        pathOptions={{ color: 'red', fillColor: 'red', fillOpacity: 0.2 }}
-                    >
-                        <Popup>
-                            <div className="text-center">
-                                <p className="font-bold mb-1">調査エリア (半径{missionArea.r}m)</p>
-                                <a
-                                    href={`https://www.google.com/maps/search/?api=1&query=${missionArea.lat},${missionArea.lng}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 underline text-sm"
-                                >
-                                    Google Mapsで開く
-                                </a>
+                        return (
+                            <AdvancedMarker
+                                key={idx}
+                                position={{ lat: marker.position[0], lng: marker.position[1] }}
+                                title={marker.popupText}
+                                onClick={() => setSelectedMarker(marker)}
+                            >
+                                {marker.image ? (
+                                    <div className="w-12 h-12 rounded-full border-[3px] border-white shadow-[0_4px_6px_rgba(0,0,0,0.3)] overflow-hidden bg-white -mt-6">
+                                        <img src={marker.image} alt="ユーザー報告写真" className="w-full h-full object-cover" />
+                                    </div>
+                                ) : (
+                                    <Pin background={'#ef4444'} borderColor={'#b91c1c'} />
+                                )}
+                            </AdvancedMarker>
+                        );
+                    })}
+
+                    {/* Selected Marker InfoWindow */}
+                    {selectedMarker && selectedMarker.position && (
+                        <InfoWindow
+                            position={{ lat: selectedMarker.position[0], lng: selectedMarker.position[1] }}
+                            onCloseClick={() => setSelectedMarker(null)}
+                        >
+                            <div className="text-center p-2 min-w-[150px]">
+                                <p className="font-bold text-sm mb-2 text-earth-800">{selectedMarker.popupText}</p>
+                                {selectedMarker.image ? (
+                                    <img src={selectedMarker.image} alt="報告写真" className="w-[120px] h-[120px] object-cover rounded-lg mx-auto border border-gray-200" />
+                                ) : (
+                                    <p className="text-xs text-earth-600">写真なし</p>
+                                )}
                             </div>
-                        </Popup>
-                    </Circle>
-                )}
+                        </InfoWindow>
+                    )}
+                </Map>
+            </APIProvider>
 
-                {/* User Location */}
-                {userLocation && isValidCoordinate(userLocation) && (
-                    <Marker position={userLocation} icon={new L.Icon({
-                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                        iconSize: [25, 41],
-                        iconAnchor: [12, 41],
-                        popupAnchor: [1, -34],
-                        shadowSize: [41, 41]
-                    })}>
-                        <Popup>現在地</Popup>
-                    </Marker>
-                )}
-
-                {/* Other Markers */}
-                {markers.map((marker, idx) => {
-                    if (!marker.position || !isValidCoordinate(marker.position)) return null;
-
-                    let customIcon = DefaultIcon;
-
-                    if (marker.image) {
-                        const html = `<div style="width: 48px; height: 48px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); overflow: hidden; background-image: url('${marker.image}'); background-size: cover; background-position: center; pointer-events: none;"></div>`;
-                        customIcon = L.divIcon({
-                            html: html,
-                            className: '', // Tailwind or Leaflet default classes will just wrap this
-                            iconSize: [48, 48],
-                            iconAnchor: [24, 24],
-                            popupAnchor: [0, -24]
-                        });
-                    }
-
-                    return (
-                        <Marker key={idx} position={marker.position} icon={customIcon}>
-                            <Popup>
-                                <div className="text-center max-w-[200px]">
-                                    {marker.image && (
-                                        <img src={marker.image} alt="ユーザー報告写真" className="w-full h-auto rounded-lg mb-2 shadow-sm object-cover" />
-                                    )}
-                                    <p className="font-bold text-sm text-earth-800">{marker.popupText}</p>
-                                </div>
-                            </Popup>
-                        </Marker>
-                    );
-                })}
-            </MapContainer>
+            <LocateControl onUpdateLocation={onUpdateLocation} />
         </div>
     );
 }

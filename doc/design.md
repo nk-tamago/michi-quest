@@ -32,6 +32,9 @@
    * 新ゲームメカニクス: ★データ品質判定、知見コレクション、信頼度システム、ミッション変更対応
    * 現行システムからの移行マッピングと段階的実装フェーズ
 
+6. **[06_google_maps_migration_status.md](./06_google_maps_migration_status.md)** (Google Maps API 移行ステータス)
+   * OpenStreetMap・Nominatim APIからGoogle Maps APIへの移行作業の進捗と引継ぎ事項
+
 ---
 
 ## 開発フェーズの進捗 (History)
@@ -41,5 +44,6 @@
 * [x] **フェーズ4**: 動画制作支援（チャット履歴リプレイ機能、リプレイコントローラーUI自動切替）
 * [x] **フェーズ5**: データ管理（エクスポート・インポート機能）
 * [x] **フェーズ6**: ゲーム体験リデザイン（★品質判定・知見コレクション・信頼度システム導入）→ [05_game_experience_redesign.md](./05_game_experience_redesign.md)
+* [x] **フェーズ7**: 地図機能および実在判定エンジン等のGoogle Maps移行（※デバッグ・引継ぎ中）→ [06_google_maps_migration_status.md](./06_google_maps_migration_status.md)
 
 プロジェクトの基本機能群はフェーズ5をもって完成しています。フェーズ6では体験の大幅な刷新を行います。詳細は上記リデザイン計画を参照してください。
