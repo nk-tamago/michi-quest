@@ -11,7 +11,7 @@ const MapCircle = ({ center, radius }) => {
     useEffect(() => {
         if (!map || !window.google) return;
 
-        const validRadius = typeof radius === 'number' && radius > 0 ? radius : 500;
+        const validRadius = typeof radius === 'number' && radius > 0 ? radius : 2000;
 
         const circle = new window.google.maps.Circle({
             strokeColor: '#FF0000',
