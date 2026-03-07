@@ -46,6 +46,7 @@ export default function ChatThread({
     const [imageLocation, setImageLocation] = useState(null);
     const [isProcessingImage, setIsProcessingImage] = useState(false);
     const [isImageMenuOpen, setIsImageMenuOpen] = useState(false); // メニュー開閉状態
+    const [isReportMode, setIsReportMode] = useState(false); // ★ 明示的な調査報告フラグ (デフォルトOFF)
     const cameraInputRef = useRef(null); // カメラ用 (capture="environment")
     const galleryInputRef = useRef(null); // ギャラリー用
     const chatEndRef = useRef(null);
@@ -391,6 +392,7 @@ export default function ChatThread({
         setImagePreview(null);
         setImageBase64(null);
         setImageLocation(null);
+        setIsReportMode(false); // ★ 画像クリア時にチェックも外す
         if (cameraInputRef.current) cameraInputRef.current.value = '';
         if (galleryInputRef.current) galleryInputRef.current.value = '';
     };
@@ -720,11 +722,11 @@ export default function ChatThread({
 
         if (loading || isProcessingImage || pendingEvaluation || isEvaluating) return;
         if (imageBase64) {
-            if (currentMission) {
-                // ミッション実行中は報告として扱う
+            if (currentMission && isReportMode) {
+                // ミッション実行中かつ報告チェックON時は「報告」として扱う
                 handleReportMission();
             } else {
-                // フリー状態の時は自発写真として扱う
+                // フリー状態、またはミッション実行中でも報告チェックOFFなら「雑談」として扱う
                 handleOperatorChat(true);
             }
         } else if (inputText.trim()) {
@@ -948,16 +950,29 @@ export default function ChatThread({
                 <div className="max-w-3xl mx-auto">
                     <>
                         {(imagePreview || replayImagePreview) ? (
-                            <div className="relative inline-block mb-3">
-                                <img src={imagePreview || replayImagePreview} alt="Preview" className="h-24 w-24 object-cover rounded-lg border-2 border-earth-400 shadow-sm" />
-                                <button
-                                    onClick={handleClearImage}
-                                    disabled={isReplayMode}
-                                    className={`absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md transition-colors ${isReplayMode ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-600'}`}
-                                    aria-label="画像をクリア"
-                                >
-                                    <RefreshCcw size={14} />
-                                </button>
+                            <div className="mb-3 space-y-2">
+                                <div className="relative inline-block">
+                                    <img src={imagePreview || replayImagePreview} alt="Preview" className="h-24 w-24 object-cover rounded-lg border-2 border-earth-400 shadow-sm" />
+                                    <button
+                                        onClick={handleClearImage}
+                                        disabled={isReplayMode}
+                                        className={`absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md transition-colors ${isReplayMode ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-600'}`}
+                                        aria-label="画像をクリア"
+                                    >
+                                        <RefreshCcw size={14} />
+                                    </button>
+                                </div>
+                                {!isReplayMode && currentMission && (
+                                    <label className="flex items-center gap-2 text-sm font-bold text-earth-700 bg-earth-200 p-2 rounded-lg border border-earth-300 w-fit cursor-pointer hover:bg-earth-300 transition-colors shadow-sm">
+                                        <input
+                                            type="checkbox"
+                                            checked={isReportMode}
+                                            onChange={(e) => setIsReportMode(e.target.checked)}
+                                            className="w-4 h-4 text-earth-800 rounded focus:ring-earth-800 accent-earth-800"
+                                        />
+                                        調査報告として提出する
+                                    </label>
+                                )}
                             </div>
                         ) : null}
 
