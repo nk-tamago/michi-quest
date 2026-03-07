@@ -424,30 +424,6 @@ export default function ChatThread({
             const finalPrompt = basePrompt + "\n\n【ミチ・ノマの現在の態度（信頼度に基づく）】\n" + trustPrompt + "\n\n" + prompt2;
             const resultText = await evaluateReport(apiKey, aiModel, finalPrompt, currentMission || "調査対象不明", imageBase64, chatHistory, currentInput);
 
-            // ★ Auto-Routing: 雑談判定（PATTERN A）のチェック
-            // 応答内に [Emotion: xxx] などのネストしたブラケットが含まれる可能性があるため、
-            // [CHAT: から末尾までを大まかに取得し、末尾の ] を取り除く安全なパースを行う
-            const chatMatch = resultText.match(/\[CHAT:\s*([\s\S]*)/i);
-            if (chatMatch) {
-                // 評価・判定プロセスを完全にスキップし、ただのチャット履歴として処理する
-                let chatMsg = chatMatch[1].trim();
-                if (chatMsg.endsWith(']')) {
-                    chatMsg = chatMsg.slice(0, -1).trim();
-                }
-
-                // 万が一他のタグが含まれていた場合は除去（[CHAT]内のみを表示）
-                chatMsg = chatMsg.replace(/\[GRADE:[^\]]*\]/ig, '')
-                    .replace(/\[INSIGHT:\s*({[\s\S]*?}|[^\]]*)\]/ig, '')
-                    .replace(/\[AREA:\s*({[\s\S]*?})\]/ig, '')
-                    .replace(/\[PRELUDE:[^\]]*\]/ig, '')
-                    .replace(/\[ANNOUNCE:[^\]]*\]/ig, '')
-                    .trim();
-
-                const aiMsgParts = splitMessageByEmotion(chatMsg, Date.now() + 1, 'ai');
-                addMessagesWithDelay(aiMsgParts);
-                return; // 雑談として処理完了
-            }
-
             let earnedGrade = null;
             let earnedTitle = null;
 
